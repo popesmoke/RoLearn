@@ -33,6 +33,7 @@ export async function updateProfile(formData: FormData) {
     },
   });
   revalidatePath("/dashboard");
+  revalidatePath("/explore");
 }
 
 export async function addSkill(formData: FormData) {
@@ -53,6 +54,7 @@ export async function addSkill(formData: FormData) {
     update: {},
   });
   revalidatePath("/dashboard");
+  revalidatePath("/explore");
 }
 
 export async function createPortfolioItem(formData: FormData) {
@@ -68,6 +70,7 @@ export async function createPortfolioItem(formData: FormData) {
     },
   });
   revalidatePath("/dashboard");
+  revalidatePath("/explore");
 }
 
 export async function createCourse(formData: FormData) {
@@ -92,6 +95,7 @@ export async function createCourse(formData: FormData) {
     },
   });
   revalidatePath("/dashboard");
+  revalidatePath("/explore");
 }
 
 export async function createService(formData: FormData) {
@@ -106,7 +110,9 @@ export async function createService(formData: FormData) {
     },
   });
   revalidatePath("/dashboard");
+  revalidatePath("/explore");
   revalidatePath("/marketplace");
+  revalidatePath("/explore");
 }
 
 export async function createJob(formData: FormData) {
@@ -121,7 +127,9 @@ export async function createJob(formData: FormData) {
     },
   });
   revalidatePath("/dashboard");
+  revalidatePath("/explore");
   revalidatePath("/marketplace");
+  revalidatePath("/explore");
 }
 
 export async function createTeamPost(formData: FormData) {
@@ -135,5 +143,7 @@ export async function createTeamPost(formData: FormData) {
     },
   });
   revalidatePath("/dashboard");
+  revalidatePath("/explore");
   revalidatePath("/teamfinder");
+  revalidatePath("/explore");
 }

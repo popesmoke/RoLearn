@@ -1,192 +1,187 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AuthButtons } from "@/components/auth-buttons";
+import { AuthButtons, MarketingAuthButtons } from "@/components/auth-buttons";
+import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
+import { skillCategories } from "@/lib/constants";
+import { formatCategory } from "@/lib/utils";
 
-const features = [
+const highlights = [
   {
-    title: "Roblox Identity",
-    description:
-      "Google sign-in now, Roblox sign-in next. User profiles are already structured for Roblox identity import.",
+    title: "Creator feed",
+    description: "See services, jobs, and team posts in one timeline — like a professional network built for Roblox devs.",
   },
   {
-    title: "Verified Portfolios",
-    description:
-      "Connect experiences and groups — ownership verified automatically. No more fake portfolios.",
+    title: "Studio workspace",
+    description: "Manage your profile, portfolio, courses, gigs, and recruitment from a single dashboard.",
   },
   {
-    title: "Collaborative Courses",
-    description:
-      "Multiple instructors per course with automatic revenue splits. Builder, scripter, and UI designer teach together.",
-  },
-  {
-    title: "Team Finder",
-    description:
-      "Search for scripters, builders, UI designers, and animators. Apply directly to join game projects.",
-  },
-  {
-    title: "Freelance Marketplace",
-    description:
-      "Offer services, post jobs, set budgets, track milestones, and build reputation through completed work.",
-  },
-  {
-    title: "Trust Score",
-    description:
-      "Fair reputation from reviews, completed jobs, courses, portfolio quality, and community contributions.",
+    title: "Reputation that matters",
+    description: "Trust scores, hire-me status, and verified portfolios — not just another generic talent board.",
   },
 ];
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#050508] text-zinc-100">
-      <header className="border-b border-white/5">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo.png"
-              alt="RoLearn"
-              width={40}
-              height={40}
-              className="rounded-lg"
-            />
-            <span className="text-xl font-bold">
-              <span className="gradient-text">Ro</span>
-              <span>Learn</span>
-            </span>
-          </div>
-          <nav className="hidden items-center gap-6 text-sm text-zinc-400 sm:flex">
-            <a href="#features" className="hover:text-white transition-colors">
-              Features
-            </a>
-            <Link href="/dashboard" className="hover:text-white transition-colors">
-              Dashboard
-            </Link>
-            <Link href="/marketplace" className="hover:text-white transition-colors">
-              Marketplace
-            </Link>
-            <Link href="/teamfinder" className="hover:text-white transition-colors">
-              Team Finder
-            </Link>
-            <a
-              href="https://github.com/popesmoke/RoLearn/blob/main/docs/HOSTING.md"
-              className="hover:text-white transition-colors"
-            >
-              Hosting Guide
-            </a>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/logo.png" alt="RoLearn" width={36} height={36} className="rounded-lg" />
+            <span className="text-lg font-bold tracking-tight">RoLearn</span>
+          </Link>
+          <nav className="hidden items-center gap-6 text-sm text-muted md:flex">
+            <Link href="/explore" className="transition hover:text-foreground">Feed</Link>
+            <Link href="/marketplace" className="transition hover:text-foreground">Marketplace</Link>
+            <Link href="/teamfinder" className="transition hover:text-foreground">Teams</Link>
+            <Link href="/dashboard" className="transition hover:text-foreground">Studio</Link>
           </nav>
           <AuthButtons />
         </div>
       </header>
 
       <main>
-        <section className="mx-auto max-w-6xl px-6 py-24 text-center">
-          <div className="mx-auto mb-8 inline-block hex-glow rounded-2xl">
-            <Image
-              src="/logo.png"
-              alt="RoLearn logo"
-              width={160}
-              height={160}
-              className="rounded-2xl"
-              priority
-            />
-          </div>
-          <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
-            The all-in-one platform for{" "}
-            <span className="gradient-text">Roblox creators</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400">
-            Learn, teach, collaborate, build a reputation, and get hired — all in
-            one place. No more jumping between YouTube, Discord, and talent
-            marketplaces.
-          </p>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-zinc-500">
-            Temporary auth: Google OAuth (free). Roblox OAuth will be enabled
-            once account verification is approved.
-          </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="/dashboard"
-              className="rounded-full bg-rolearn-blue px-8 py-3 font-medium text-white transition hover:bg-blue-500"
-            >
-              Open Creator Dashboard
-            </Link>
-            <a
-              href="https://github.com/popesmoke/RoLearn/blob/main/docs/HOSTING.md"
-              className="rounded-full border border-white/10 px-8 py-3 font-medium text-zinc-300 transition hover:border-white/20 hover:text-white"
-            >
-              Deploy Guide
-            </a>
+        <section className="hero-grid border-b border-border">
+          <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-24">
+            <div className="animate-fade-up">
+              <Badge variant="accent" className="mb-4">Built for Roblox developers</Badge>
+              <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
+                The professional network for Roblox creators.
+              </h1>
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
+                Publish your work, find gigs, recruit your team, and build reputation —
+                without bouncing between Discord, YouTube, and random job boards.
+              </p>
+              <div className="mt-8">
+                <MarketingAuthButtons />
+              </div>
+              <p className="mt-4 text-sm text-subtle">
+                Free to start · Google sign-in · Deploy on Vercel in minutes
+              </p>
+            </div>
+
+            <div className="animate-fade-up rounded-2xl border border-border bg-surface-elevated p-1 shadow-2xl shadow-black/40 [animation-delay:120ms]">
+              <div className="rounded-[14px] border border-border bg-black p-4">
+                <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+                  <p className="text-sm font-semibold">Home</p>
+                  <Badge>Live feed</Badge>
+                </div>
+                <div className="space-y-3">
+                  <PreviewPost
+                    name="NovaBuilder"
+                    handle="novabuilder"
+                    tag="Service"
+                    title="Advanced lobby systems & matchmaking"
+                    meta="Builder · From $120"
+                  />
+                  <PreviewPost
+                    name="ScriptLab"
+                    handle="scriptlab"
+                    tag="Job"
+                    title="Need combat framework for anime RPG"
+                    meta="Budget $400 – $800"
+                  />
+                  <PreviewPost
+                    name="PixelForge"
+                    handle="pixelforge"
+                    tag="Team"
+                    title="Recruiting UI designer for tycoon project"
+                    meta="UI Designer"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section id="features" className="border-t border-white/5 bg-white/[0.02] py-24">
-          <div className="mx-auto max-w-6xl px-6">
-            <h2 className="text-center text-3xl font-bold">
-              Everything creators need
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-center text-zinc-400">
-              Verified portfolios, team finding, and collaborative courses —
-              features that make RoLearn genuinely unique.
-            </p>
-            <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((feature) => (
-                <div
-                  key={feature.title}
-                  className="rounded-2xl border border-white/5 bg-white/[0.02] p-6 transition hover:border-blue-500/20 hover:bg-white/[0.04]"
-                >
-                  <h3 className="text-lg font-semibold text-white">
-                    {feature.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                    {feature.description}
-                  </p>
+        <section className="border-b border-border py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="grid gap-6 md:grid-cols-3">
+              {highlights.map((item) => (
+                <div key={item.title} className="surface-panel p-6">
+                  <h2 className="text-lg font-bold">{item.title}</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{item.description}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto max-w-6xl px-6 text-center">
-            <h2 className="text-3xl font-bold">Skill categories</h2>
-            <div className="mt-10 flex flex-wrap justify-center gap-3">
-              {[
-                "Scripter",
-                "Builder",
-                "UI Designer",
-                "Animator",
-                "Modeler",
-                "VFX Artist",
-                "Sound Designer",
-                "Composer",
-                "Game Designer",
-                "Monetization",
-                "Community Manager",
-              ].map((skill) => (
-                <span
-                  key={skill}
-                  className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-zinc-300"
-                >
-                  {skill}
-                </span>
+        <section className="border-b border-border py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
+            <h2 className="text-2xl font-bold sm:text-3xl">Every role on your team</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-muted">
+              From scripting and building to UI, audio, and monetization — RoLearn is structured around how Roblox studios actually hire.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-2">
+              {skillCategories.map((skill) => (
+                <Badge key={skill}>{formatCategory(skill)}</Badge>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 sm:py-20">
+          <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+            <h2 className="text-3xl font-bold">Start building your presence</h2>
+            <p className="mt-3 text-muted">
+              Create your profile, publish your first listing, and show up in the feed today.
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <ButtonLink href="/explore" size="lg">Explore the feed</ButtonLink>
+              <ButtonLink href="/dashboard" variant="outline" size="lg">Open Studio</ButtonLink>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-white/5 py-8">
-        <div className="mx-auto max-w-6xl px-6 text-center text-sm text-zinc-500">
-          <p>RoLearn — Built for the Roblox creator ecosystem.</p>
-          <p className="mt-2">
-            <a
-              href="https://github.com/popesmoke/RoLearn"
-              className="text-zinc-400 hover:text-white transition-colors"
-            >
-              View on GitHub
+      <footer className="border-t border-border py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-sm text-subtle sm:flex-row sm:px-6">
+          <p>© {new Date().getFullYear()} RoLearn</p>
+          <div className="flex gap-4">
+            <a href="https://github.com/popesmoke/RoLearn" className="hover:text-foreground">
+              GitHub
             </a>
-          </p>
+            <a
+              href="https://github.com/popesmoke/RoLearn/blob/main/docs/HOSTING.md"
+              className="hover:text-foreground"
+            >
+              Deploy guide
+            </a>
+          </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function PreviewPost({
+  name,
+  handle,
+  tag,
+  title,
+  meta,
+}: {
+  name: string;
+  handle: string;
+  tag: string;
+  title: string;
+  meta: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-surface-elevated/60 p-3">
+      <div className="flex items-center gap-2 text-sm">
+        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-sky-500 to-blue-600" />
+        <div>
+          <p className="font-semibold">{name}</p>
+          <p className="text-xs text-muted">@{handle}</p>
+        </div>
+        <Badge className="ml-auto" variant={tag === "Service" ? "accent" : tag === "Job" ? "warning" : "success"}>
+          {tag}
+        </Badge>
+      </div>
+      <p className="mt-2 text-sm font-semibold">{title}</p>
+      <p className="mt-1 text-xs text-muted">{meta}</p>
     </div>
   );
 }

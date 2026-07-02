@@ -1,66 +1,117 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { AppShell } from "@/components/layout/app-shell";
+import { FeedItem } from "@/components/feed/feed-item";
+import { ButtonLink } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function MarketplacePage() {
+type PageProps = {
+  searchParams: Promise<{ tab?: string }>;
+};
+
+export default async function MarketplacePage({ searchParams }: PageProps) {
+  const { tab = "services" } = await searchParams;
+
   const [services, jobs] = await Promise.all([
     prisma.serviceOffer.findMany({
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { displayName: true, email: true } } },
-      take: 25,
+      include: { user: { select: { displayName: true, email: true, avatarUrl: true } } },
+      take: 40,
     }),
     prisma.jobPost.findMany({
       where: { isOpen: true },
       orderBy: { createdAt: "desc" },
-      include: { author: { select: { displayName: true, email: true } } },
-      take: 25,
+      include: { author: { select: { displayName: true, email: true, avatarUrl: true } } },
+      take: 40,
     }),
   ]);
 
+  const tabs = [
+    { id: "services", label: "Services", count: services.length },
+    { id: "jobs", label: "Jobs", count: jobs.length },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#050508] px-6 py-8 text-zinc-100">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Marketplace</h1>
-          <Link href="/dashboard" className="text-sm text-zinc-300 hover:text-white">
-            Back to dashboard
+    <AppShell title="Marketplace">
+      <div className="flex border-b border-border">
+        {tabs.map((item) => (
+          <Link
+            key={item.id}
+            href={`/marketplace?tab=${item.id}`}
+            className={cn(
+              "flex-1 py-4 text-center text-[15px] font-medium transition hover:bg-surface-hover",
+              tab === item.id
+                ? "border-b-4 border-sky-500 font-bold text-foreground"
+                : "text-muted",
+            )}
+          >
+            {item.label}
+            <span className="ml-1.5 text-sm text-subtle">{item.count}</span>
           </Link>
+        ))}
+      </div>
+
+      <div className="border-b border-border px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted">
+            {tab === "services"
+              ? "Hire verified Roblox creators for scripting, building, UI, and more."
+              : "Contract work with clear budgets and scope."}
+          </p>
+          <ButtonLink href="/dashboard" size="sm" variant="outline">
+            Post listing
+          </ButtonLink>
         </div>
+      </div>
 
-        <section className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="text-xl font-semibold">Service Offers</h2>
-            <ul className="mt-4 space-y-3 text-sm">
-              {services.length === 0 && <li className="text-zinc-400">No services yet.</li>}
-              {services.map((service) => (
-                <li key={service.id} className="rounded-lg border border-white/10 p-3">
-                  <p className="font-medium">{service.title}</p>
-                  <p className="text-zinc-400">{service.description}</p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {service.category.replaceAll("_", " ")} • by {service.user.displayName ?? service.user.email}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
+      <div className="feed-divider">
+        {tab === "services" ? (
+          services.length === 0 ? (
+            <EmptyState type="service" />
+          ) : (
+            services.map((service) => (
+              <FeedItem
+                key={service.id}
+                type="service"
+                title={service.title}
+                description={service.description}
+                author={service.user}
+                createdAt={service.createdAt}
+                category={service.category}
+                price={service.basePrice}
+              />
+            ))
+          )
+        ) : jobs.length === 0 ? (
+          <EmptyState type="job" />
+        ) : (
+          jobs.map((job) => (
+            <FeedItem
+              key={job.id}
+              type="job"
+              title={job.title}
+              description={job.description}
+              author={job.author}
+              createdAt={job.createdAt}
+              budgetMin={job.budgetMin}
+              budgetMax={job.budgetMax}
+            />
+          ))
+        )}
+      </div>
+    </AppShell>
+  );
+}
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="text-xl font-semibold">Open Jobs</h2>
-            <ul className="mt-4 space-y-3 text-sm">
-              {jobs.length === 0 && <li className="text-zinc-400">No open jobs yet.</li>}
-              {jobs.map((job) => (
-                <li key={job.id} className="rounded-lg border border-white/10 p-3">
-                  <p className="font-medium">{job.title}</p>
-                  <p className="text-zinc-400">{job.description}</p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    Budget: {job.budgetMin ?? 0}-{job.budgetMax ?? 0} USD • by {job.author.displayName ?? job.author.email}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+function EmptyState({ type }: { type: "service" | "job" }) {
+  return (
+    <div className="px-4 py-16 text-center">
+      <p className="text-lg font-semibold">No {type === "service" ? "services" : "jobs"} yet</p>
+      <p className="mt-2 text-muted">Publish from Studio to show up here.</p>
+      <div className="mt-6">
+        <ButtonLink href="/dashboard">Go to Studio</ButtonLink>
       </div>
     </div>
   );

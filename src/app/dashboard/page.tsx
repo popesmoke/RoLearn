@@ -2,6 +2,15 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { skillCategories } from "@/lib/constants";
+import { AppShell } from "@/components/layout/app-shell";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn, formatCategory, trustLevelStyles } from "@/lib/utils";
 import {
   addSkill,
   createCourse,
@@ -14,159 +23,305 @@ import {
 
 export const dynamic = "force-dynamic";
 
-function SkillSelect({ name }: { name: string }) {
-  return (
-    <select
-      name={name}
-      className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm"
-      defaultValue="SCRIPTER"
-    >
-      {skillCategories.map((category) => (
-        <option key={category} value={category}>
-          {category.replaceAll("_", " ")}
-        </option>
-      ))}
-    </select>
-  );
-}
+type PageProps = {
+  searchParams: Promise<{ tab?: string }>;
+};
 
-export default async function DashboardPage() {
+const tabs = [
+  { id: "profile", label: "Profile" },
+  { id: "portfolio", label: "Portfolio" },
+  { id: "courses", label: "Courses" },
+  { id: "market", label: "Market" },
+  { id: "recruit", label: "Recruit" },
+];
+
+export default async function DashboardPage({ searchParams }: PageProps) {
+  const { tab = "profile" } = await searchParams;
   const user = await requireUser();
 
   const [skills, portfolioItems, courses, services, jobs, teamPosts] = await Promise.all([
     prisma.userSkill.findMany({ where: { userId: user.id }, orderBy: { category: "asc" } }),
-    prisma.portfolioItem.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
+    prisma.portfolioItem.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
     prisma.courseInstructor.findMany({
       where: { userId: user.id },
       include: { course: true },
       orderBy: { course: { createdAt: "desc" } },
-      take: 5,
+      take: 8,
     }),
-    prisma.serviceOffer.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.jobPost.findMany({ where: { authorId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.teamPost.findMany({ where: { authorId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
+    prisma.serviceOffer.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
+    prisma.jobPost.findMany({ where: { authorId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
+    prisma.teamPost.findMany({ where: { authorId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
 
   return (
-    <div className="min-h-screen bg-[#050508] text-zinc-100">
-      <header className="border-b border-white/10 bg-black/20">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <h1 className="text-xl font-semibold">
-            Creator Dashboard - <span className="text-blue-400">{user.displayName ?? user.email}</span>
-          </h1>
-          <nav className="flex gap-4 text-sm text-zinc-400">
-            <Link href="/marketplace" className="hover:text-white">Marketplace</Link>
-            <Link href="/teamfinder" className="hover:text-white">Team Finder</Link>
-          </nav>
+    <AppShell title="Studio" showRightRail={false}>
+      <div className="border-b border-border">
+        <div className="px-4 py-6">
+          <div className="flex items-start gap-4">
+            <Avatar
+              src={user.avatarUrl}
+              name={user.displayName}
+              email={user.email}
+              size="lg"
+            />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-bold">{user.displayName ?? user.email}</h2>
+              <p className="text-sm text-muted">@{user.email.split("@")[0]}</p>
+              {user.aboutMe ? (
+                <p className="mt-2 text-[15px] leading-relaxed text-muted">{user.aboutMe}</p>
+              ) : (
+                <p className="mt-2 text-sm text-subtle">Add a bio to stand out to clients and teams.</p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge className={trustLevelStyles[user.trustLevel]}>
+                  {formatCategory(user.trustLevel)}
+                </Badge>
+                {user.hireMeOpen ? <Badge variant="success">Open for hire</Badge> : null}
+                <Badge>{user.trustScore} trust</Badge>
+                <Badge>{user.reputationPoints} rep</Badge>
+              </div>
+            </div>
+          </div>
         </div>
-      </header>
 
-      <main className="mx-auto grid max-w-6xl gap-6 px-6 py-8 md:grid-cols-2">
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h2 className="text-lg font-semibold">Profile</h2>
-          <form action={updateProfile} className="mt-4 space-y-3">
-            <input name="displayName" defaultValue={user.displayName ?? ""} placeholder="Display name" className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <textarea name="aboutMe" defaultValue={user.aboutMe ?? ""} placeholder="About me" className="min-h-24 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <label className="flex items-center gap-2 text-sm text-zinc-300">
-              <input type="checkbox" name="hireMeOpen" defaultChecked={user.hireMeOpen} />
-              Open for hire
-            </label>
-            <button className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium">Save profile</button>
-          </form>
-          <div className="mt-4 text-xs text-zinc-400">
-            Trust score: {user.trustScore} | Reputation: {user.reputationPoints}
+        <div className="flex overflow-x-auto">
+          {tabs.map((item) => (
+            <Link
+              key={item.id}
+              href={`/dashboard?tab=${item.id}`}
+              className={cn(
+                "min-w-[100px] flex-1 whitespace-nowrap py-4 text-center text-[15px] font-medium transition hover:bg-surface-hover",
+                tab === item.id
+                  ? "border-b-4 border-sky-500 font-bold"
+                  : "text-muted",
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-4">
+        {tab === "profile" ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Edit profile</h3>
+              </CardHeader>
+              <CardBody>
+                <form action={updateProfile} className="space-y-4">
+                  <Input name="displayName" label="Display name" defaultValue={user.displayName ?? ""} />
+                  <Textarea name="aboutMe" label="Bio" defaultValue={user.aboutMe ?? ""} placeholder="What do you build on Roblox?" />
+                  <label className="flex items-center gap-2 text-sm text-muted">
+                    <input type="checkbox" name="hireMeOpen" defaultChecked={user.hireMeOpen} className="rounded border-border" />
+                    Available for hire
+                  </label>
+                  <Button type="submit">Save profile</Button>
+                </form>
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Skills</h3>
+              </CardHeader>
+              <CardBody>
+                <form action={addSkill} className="space-y-4">
+                  <Select name="category" label="Add skill" options={skillCategories} defaultValue="SCRIPTER" />
+                  <Button type="submit" variant="outline">Add skill</Button>
+                </form>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {skills.length === 0 ? (
+                    <p className="text-sm text-muted">No skills added yet.</p>
+                  ) : (
+                    skills.map((skill) => (
+                      <Badge key={skill.id} variant="accent">
+                        {formatCategory(skill.category)}
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </CardBody>
+            </Card>
           </div>
-        </section>
+        ) : null}
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h2 className="text-lg font-semibold">Skills</h2>
-          <form action={addSkill} className="mt-4 space-y-3">
-            <SkillSelect name="category" />
-            <button className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium">Add skill</button>
-          </form>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {skills.length === 0 ? (
-              <p className="text-sm text-zinc-400">No skills yet.</p>
-            ) : (
-              skills.map((skill) => (
-                <span key={skill.id} className="rounded-full border border-white/20 px-3 py-1 text-xs">
-                  {skill.category.replaceAll("_", " ")}
-                </span>
-              ))
-            )}
+        {tab === "portfolio" ? (
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Add portfolio project</h3>
+              </CardHeader>
+              <CardBody>
+                <form action={createPortfolioItem} className="space-y-4">
+                  <Input name="title" label="Project title" required placeholder="Obby framework, UI kit, etc." />
+                  <Textarea name="description" label="Description" placeholder="What did you ship?" />
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Input name="experienceId" label="Experience ID" placeholder="Optional" />
+                    <Input name="groupId" label="Group ID" placeholder="Optional" />
+                    <Input name="assetId" label="Asset ID" placeholder="Optional" />
+                  </div>
+                  <Button type="submit">Publish project</Button>
+                </form>
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Your projects</h3>
+              </CardHeader>
+              <CardBody className="space-y-3">
+                {portfolioItems.length === 0 ? (
+                  <p className="text-sm text-muted">No portfolio items yet.</p>
+                ) : (
+                  portfolioItems.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-border bg-background/50 p-3">
+                      <p className="font-semibold">{item.title}</p>
+                      {item.description ? (
+                        <p className="mt-1 text-sm text-muted">{item.description}</p>
+                      ) : null}
+                      {item.ownershipVerified ? (
+                        <Badge variant="success" className="mt-2">Verified</Badge>
+                      ) : null}
+                    </div>
+                  ))
+                )}
+              </CardBody>
+            </Card>
           </div>
-        </section>
+        ) : null}
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h2 className="text-lg font-semibold">Portfolio</h2>
-          <form action={createPortfolioItem} className="mt-4 space-y-3">
-            <input name="title" required placeholder="Project title" className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <textarea name="description" placeholder="What did you build?" className="min-h-20 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <div className="grid grid-cols-3 gap-2">
-              <input name="experienceId" placeholder="Experience ID" className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-              <input name="groupId" placeholder="Group ID" className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-              <input name="assetId" placeholder="Asset ID" className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            </div>
-            <button className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium">Add project</button>
-          </form>
-          <ul className="mt-4 space-y-2 text-sm text-zinc-300">
-            {portfolioItems.map((item) => <li key={item.id}>- {item.title}</li>)}
-          </ul>
-        </section>
+        {tab === "courses" ? (
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Create course</h3>
+              </CardHeader>
+              <CardBody>
+                <form action={createCourse} className="space-y-4">
+                  <Input name="title" label="Course title" required />
+                  <Textarea name="description" label="Description" required />
+                  <label className="flex items-center gap-2 text-sm text-muted">
+                    <input type="checkbox" name="isPaid" className="rounded border-border" />
+                    Paid course
+                  </label>
+                  <Input name="priceUsd" label="Price (USD)" type="number" min="0" placeholder="0" />
+                  <Button type="submit">Publish course</Button>
+                </form>
+              </CardBody>
+            </Card>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h2 className="text-lg font-semibold">Create Course</h2>
-          <form action={createCourse} className="mt-4 space-y-3">
-            <input name="title" required placeholder="Course title" className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <textarea name="description" required placeholder="Course description" className="min-h-20 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <label className="flex items-center gap-2 text-sm text-zinc-300">
-              <input type="checkbox" name="isPaid" />
-              Paid course
-            </label>
-            <input name="priceUsd" type="number" min="0" placeholder="Price in USD" className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <button className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium">Publish course</button>
-          </form>
-          <ul className="mt-4 space-y-2 text-sm text-zinc-300">
-            {courses.map((item) => <li key={item.id}>- {item.course.title}</li>)}
-          </ul>
-        </section>
-
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h2 className="text-lg font-semibold">Offer Service</h2>
-          <form action={createService} className="mt-4 space-y-3">
-            <input name="title" required placeholder="Service title" className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <SkillSelect name="category" />
-            <textarea name="description" required placeholder="Service details" className="min-h-20 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <input name="basePriceUsd" type="number" min="0" placeholder="Starting price (USD)" className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <button className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium">Publish service</button>
-          </form>
-          <ul className="mt-4 space-y-2 text-sm text-zinc-300">
-            {services.map((item) => <li key={item.id}>- {item.title}</li>)}
-          </ul>
-        </section>
-
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h2 className="text-lg font-semibold">Post Jobs and Team Requests</h2>
-          <form action={createJob} className="mt-4 space-y-3 border-b border-white/10 pb-4">
-            <input name="title" required placeholder="Job title" className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <textarea name="description" required placeholder="Job scope" className="min-h-16 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <div className="grid grid-cols-2 gap-2">
-              <input name="budgetMinUsd" type="number" min="0" placeholder="Min budget USD" className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-              <input name="budgetMaxUsd" type="number" min="0" placeholder="Max budget USD" className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            </div>
-            <button className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium">Post job</button>
-          </form>
-          <form action={createTeamPost} className="mt-4 space-y-3">
-            <input name="title" required placeholder="Team post title" className="w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <SkillSelect name="neededRole" />
-            <textarea name="description" required placeholder="Who do you need?" className="min-h-16 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-            <button className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium">Post team request</button>
-          </form>
-          <div className="mt-4 text-xs text-zinc-400">
-            Your open jobs: {jobs.filter((job) => job.isOpen).length} | Team posts: {teamPosts.filter((post) => post.isOpen).length}
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Your courses</h3>
+              </CardHeader>
+              <CardBody className="space-y-3">
+                {courses.length === 0 ? (
+                  <p className="text-sm text-muted">No courses published yet.</p>
+                ) : (
+                  courses.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-border bg-background/50 p-3">
+                      <p className="font-semibold">{item.course.title}</p>
+                      <p className="mt-1 text-sm text-muted line-clamp-2">{item.course.description}</p>
+                      <Badge className="mt-2">
+                        {item.course.isPaid ? `$${item.course.priceCents / 100}` : "Free"}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </CardBody>
+            </Card>
           </div>
-        </section>
-      </main>
-    </div>
+        ) : null}
+
+        {tab === "market" ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Offer a service</h3>
+              </CardHeader>
+              <CardBody>
+                <form action={createService} className="space-y-4">
+                  <Input name="title" label="Service title" required />
+                  <Select name="category" label="Category" options={skillCategories} />
+                  <Textarea name="description" label="Details" required />
+                  <Input name="basePriceUsd" label="Starting price (USD)" type="number" min="0" />
+                  <Button type="submit">Publish service</Button>
+                </form>
+                <div className="mt-5 space-y-2">
+                  {services.map((item) => (
+                    <p key={item.id} className="text-sm text-muted">· {item.title}</p>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Post a job</h3>
+              </CardHeader>
+              <CardBody>
+                <form action={createJob} className="space-y-4">
+                  <Input name="title" label="Job title" required />
+                  <Textarea name="description" label="Scope" required />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Input name="budgetMinUsd" label="Min budget (USD)" type="number" min="0" />
+                    <Input name="budgetMaxUsd" label="Max budget (USD)" type="number" min="0" />
+                  </div>
+                  <Button type="submit">Post job</Button>
+                </form>
+                <div className="mt-5 space-y-2">
+                  {jobs.map((item) => (
+                    <p key={item.id} className="text-sm text-muted">
+                      · {item.title} {item.isOpen ? "" : "(closed)"}
+                    </p>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        ) : null}
+
+        {tab === "recruit" ? (
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Recruit for your team</h3>
+              </CardHeader>
+              <CardBody>
+                <form action={createTeamPost} className="space-y-4">
+                  <Input name="title" label="Post title" required placeholder="Looking for lead scripter" />
+                  <Select name="neededRole" label="Role needed" options={skillCategories} />
+                  <Textarea name="description" label="What you're building" required />
+                  <Button type="submit">Publish team post</Button>
+                </form>
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold">Your team posts</h3>
+              </CardHeader>
+              <CardBody className="space-y-3">
+                {teamPosts.length === 0 ? (
+                  <p className="text-sm text-muted">No team posts yet.</p>
+                ) : (
+                  teamPosts.map((post) => (
+                    <div key={post.id} className="rounded-xl border border-border bg-background/50 p-3">
+                      <p className="font-semibold">{post.title}</p>
+                      <p className="mt-1 text-sm text-muted">{formatCategory(post.neededRole)}</p>
+                      <Badge className="mt-2" variant={post.isOpen ? "success" : "default"}>
+                        {post.isOpen ? "Open" : "Closed"}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </CardBody>
+            </Card>
+          </div>
+        ) : null}
+      </div>
+    </AppShell>
   );
 }

@@ -1,5 +1,7 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { AppShell } from "@/components/layout/app-shell";
+import { FeedItem } from "@/components/feed/feed-item";
+import { ButtonLink } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -7,34 +9,46 @@ export default async function TeamFinderPage() {
   const teamPosts = await prisma.teamPost.findMany({
     where: { isOpen: true },
     orderBy: { createdAt: "desc" },
-    include: { author: { select: { displayName: true, email: true } } },
+    include: { author: { select: { displayName: true, email: true, avatarUrl: true } } },
     take: 50,
   });
 
   return (
-    <div className="min-h-screen bg-[#050508] px-6 py-8 text-zinc-100">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Team Finder</h1>
-          <Link href="/dashboard" className="text-sm text-zinc-300 hover:text-white">
-            Back to dashboard
-          </Link>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <ul className="space-y-3 text-sm">
-            {teamPosts.length === 0 && <li className="text-zinc-400">No team posts yet.</li>}
-            {teamPosts.map((post) => (
-              <li key={post.id} className="rounded-lg border border-white/10 p-3">
-                <p className="font-medium">{post.title}</p>
-                <p className="text-zinc-400">{post.description}</p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Needed role: {post.neededRole.replaceAll("_", " ")} • by {post.author.displayName ?? post.author.email}
-                </p>
-              </li>
-            ))}
-          </ul>
+    <AppShell title="Team Finder">
+      <div className="border-b border-border px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted">
+            Find scripters, builders, designers, and animators for your next game.
+          </p>
+          <ButtonLink href="/dashboard" size="sm" variant="outline">
+            Recruit
+          </ButtonLink>
         </div>
       </div>
-    </div>
+
+      <div className="feed-divider">
+        {teamPosts.length === 0 ? (
+          <div className="px-4 py-16 text-center">
+            <p className="text-lg font-semibold">No open team posts</p>
+            <p className="mt-2 text-muted">Post a recruitment request from Studio.</p>
+            <div className="mt-6">
+              <ButtonLink href="/dashboard">Open Studio</ButtonLink>
+            </div>
+          </div>
+        ) : (
+          teamPosts.map((post) => (
+            <FeedItem
+              key={post.id}
+              type="team"
+              title={post.title}
+              description={post.description}
+              author={post.author}
+              createdAt={post.createdAt}
+              category={post.neededRole}
+            />
+          ))
+        )}
+      </div>
+    </AppShell>
   );
 }

@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RoLearn — The Platform for Roblox Creators",
+  title: "RoLearn — Professional network for Roblox creators",
   description:
-    "Learn, teach, collaborate, build a reputation, and get hired. The all-in-one platform for Roblox developers.",
+    "The developer network for Roblox creators. Publish work, find gigs, recruit teams, and build reputation.",
   icons: { icon: "/logo.png" },
 };
 
