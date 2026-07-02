@@ -1,10 +1,11 @@
 import Image from "next/image";
+import { AuthButtons } from "@/components/auth-buttons";
 
 const features = [
   {
     title: "Roblox Identity",
     description:
-      "Sign in with Roblox. Your username, avatar, verification, groups, and experiences become your professional profile.",
+      "Google sign-in now, Roblox sign-in next. User profiles are already structured for Roblox identity import.",
   },
   {
     title: "Verified Portfolios",
@@ -62,9 +63,7 @@ export default function Home() {
               Hosting Guide
             </a>
           </nav>
-          <button className="rounded-full bg-rolearn-blue px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-500">
-            Sign in with Roblox
-          </button>
+          <AuthButtons />
         </div>
       </header>
 
@@ -88,6 +87,10 @@ export default function Home() {
             Learn, teach, collaborate, build a reputation, and get hired — all in
             one place. No more jumping between YouTube, Discord, and talent
             marketplaces.
+          </p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-zinc-500">
+            Temporary auth: Google OAuth (free). Roblox OAuth will be enabled
+            once account verification is approved.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <button className="rounded-full bg-rolearn-blue px-8 py-3 font-medium text-white transition hover:bg-blue-500">

@@ -21,7 +21,7 @@ The all-in-one platform for Roblox creators to **learn**, **teach**, **collabora
 - **Prisma** + PostgreSQL ([Neon](https://neon.tech) free tier)
 - **Vercel** hosting (free hobby tier)
 - **Cloudflare R2** for course media (free 10 GB)
-- **Roblox OAuth** for authentication
+- **Google OAuth** for authentication (temporary until Roblox OAuth verification is approved)
 
 ## Getting started
 
@@ -44,7 +44,8 @@ See **[docs/HOSTING.md](docs/HOSTING.md)** for the full free hosting tutorial co
 - Vercel deployment
 - Neon PostgreSQL setup
 - Cloudflare R2 file storage
-- Roblox OAuth configuration
+- Google OAuth configuration
+- Roblox OAuth migration path
 - Upstash Redis, Resend email, and CI/CD
 
 ## Project structure
