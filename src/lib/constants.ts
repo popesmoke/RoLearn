@@ -1,0 +1,13 @@
+export const skillCategories = [
+  "SCRIPTER",
+  "BUILDER",
+  "UI_DESIGNER",
+  "ANIMATOR",
+  "MODELER",
+  "VFX_ARTIST",
+  "SOUND_DESIGNER",
+  "COMPOSER",
+  "GAME_DESIGNER",
+  "MONETIZATION_SPECIALIST",
+  "COMMUNITY_MANAGER",
+] as const;

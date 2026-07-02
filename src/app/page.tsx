@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { AuthButtons } from "@/components/auth-buttons";
 
 const features = [
@@ -56,6 +57,15 @@ export default function Home() {
             <a href="#features" className="hover:text-white transition-colors">
               Features
             </a>
+            <Link href="/dashboard" className="hover:text-white transition-colors">
+              Dashboard
+            </Link>
+            <Link href="/marketplace" className="hover:text-white transition-colors">
+              Marketplace
+            </Link>
+            <Link href="/teamfinder" className="hover:text-white transition-colors">
+              Team Finder
+            </Link>
             <a
               href="https://github.com/popesmoke/RoLearn/blob/main/docs/HOSTING.md"
               className="hover:text-white transition-colors"
@@ -93,9 +103,12 @@ export default function Home() {
             once account verification is approved.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <button className="rounded-full bg-rolearn-blue px-8 py-3 font-medium text-white transition hover:bg-blue-500">
-              Get Started — Free
-            </button>
+            <Link
+              href="/dashboard"
+              className="rounded-full bg-rolearn-blue px-8 py-3 font-medium text-white transition hover:bg-blue-500"
+            >
+              Open Creator Dashboard
+            </Link>
             <a
               href="https://github.com/popesmoke/RoLearn/blob/main/docs/HOSTING.md"
               className="rounded-full border border-white/10 px-8 py-3 font-medium text-zinc-300 transition hover:border-white/20 hover:text-white"

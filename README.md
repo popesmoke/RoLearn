@@ -6,7 +6,8 @@ The all-in-one platform for Roblox creators to **learn**, **teach**, **collabora
 
 ## Features
 
-- **Roblox Identity** — Sign in with Roblox; username, avatar, verification, and portfolio import automatically
+- **Google Login (live now)** — Sign in and access creator dashboard immediately
+- **Roblox Identity (planned next)** — Existing user model is ready for Roblox linking/import
 - **Trust Levels** — Fair reputation scoring beyond simple verification badges
 - **Creator Profiles** — Skills, portfolio, courses, reviews, hire-me status
 - **Learning Platform** — Free/paid courses, video lessons, quizzes, certificates, collaborative multi-instructor courses
@@ -36,6 +37,12 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## MVP app routes
+
+- `/dashboard` — edit profile, add skills, publish portfolio items, courses, services, jobs, and team requests
+- `/marketplace` — browse service offers and open jobs
+- `/teamfinder` — browse open team recruitment posts
 
 ## Deployment
 
