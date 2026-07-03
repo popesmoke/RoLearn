@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { skillCategories } from "@/lib/constants";
 import { profilePath } from "@/lib/user-display";
+import { deleteMediaUrls } from "@/lib/storage";
 
 function safeCategory(value: string): SkillCategory {
   if (skillCategories.includes(value as (typeof skillCategories)[number])) {
@@ -152,4 +153,108 @@ async function getListingOwnerId(listingType: ListingType, listingId: string) {
     select: { authorId: true },
   });
   return row?.authorId ?? null;
+}
+
+async function verifyOwnership(
+  postType: "service" | "job" | "team",
+  postId: string,
+  userId: string,
+) {
+  if (postType === "service") {
+    const post = await prisma.serviceOffer.findUnique({ where: { id: postId } });
+    if (!post || post.userId !== userId) return false;
+    return true;
+  }
+  if (postType === "job") {
+    const post = await prisma.jobPost.findUnique({ where: { id: postId } });
+    if (!post || post.authorId !== userId) return false;
+    return true;
+  }
+  const post = await prisma.teamPost.findUnique({ where: { id: postId } });
+  if (!post || post.authorId !== userId) return false;
+  return true;
+}
+
+async function cleanupListing(listingType: ListingType, listingId: string) {
+  await prisma.postLike.deleteMany({ where: { listingType, listingId } });
+  await prisma.application.deleteMany({ where: { listingType, listingId } });
+}
+
+async function getPostMediaUrls(postType: "service" | "job" | "team", postId: string) {
+  if (postType === "service") {
+    const post = await prisma.serviceOffer.findUnique({
+      where: { id: postId },
+      select: { mediaUrls: true },
+    });
+    return post?.mediaUrls ?? [];
+  }
+  if (postType === "job") {
+    const post = await prisma.jobPost.findUnique({
+      where: { id: postId },
+      select: { mediaUrls: true },
+    });
+    return post?.mediaUrls ?? [];
+  }
+  const post = await prisma.teamPost.findUnique({
+    where: { id: postId },
+    select: { mediaUrls: true },
+  });
+  return post?.mediaUrls ?? [];
+}
+
+export async function deletePost(postType: "service" | "job" | "team", postId: string) {
+  const user = await requireUser();
+  if (!(await verifyOwnership(postType, postId, user.id))) {
+    return { error: "Post not found or you don't have permission." };
+  }
+
+  const listingType =
+    postType === "service" ? ListingType.SERVICE : postType === "job" ? ListingType.JOB : ListingType.TEAM;
+
+  const mediaUrls = await getPostMediaUrls(postType, postId);
+  await cleanupListing(listingType, postId);
+
+  if (postType === "service") {
+    await prisma.serviceOffer.delete({ where: { id: postId } });
+  } else if (postType === "job") {
+    await prisma.jobPost.delete({ where: { id: postId } });
+  } else {
+    await prisma.teamPost.delete({ where: { id: postId } });
+  }
+
+  await deleteMediaUrls(mediaUrls);
+  revalidateAll(user);
+  return { success: true };
+}
+
+export async function reopenPost(postType: "job" | "team", postId: string) {
+  const user = await requireUser();
+  if (!(await verifyOwnership(postType, postId, user.id))) {
+    return { error: "Post not found or you don't have permission." };
+  }
+
+  if (postType === "job") {
+    await prisma.jobPost.update({ where: { id: postId }, data: { isOpen: true } });
+  } else {
+    await prisma.teamPost.update({ where: { id: postId }, data: { isOpen: true } });
+  }
+
+  revalidateAll(user);
+  return { success: true };
+}
+
+export async function closePost(postType: "job" | "team", postId: string) {
+  const user = await requireUser();
+  if (!(await verifyOwnership(postType, postId, user.id))) {
+    return { error: "Post not found or you don't have permission." };
+  }
+
+  if (postType === "job") {
+    await prisma.jobPost.update({ where: { id: postId }, data: { isOpen: false } });
+  } else {
+    await prisma.teamPost.update({ where: { id: postId }, data: { isOpen: false } });
+  }
+
+  revalidateAll(user);
+  return { success: true };
 }

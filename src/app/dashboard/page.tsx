@@ -12,6 +12,10 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AppIcon, type IconName } from "@/components/icons";
 import { cn, formatCategory, trustLevelStyles } from "@/lib/utils";
+import { MyPostsPanel } from "@/components/feed/my-posts-panel";
+import { ApplicationsInbox } from "@/components/dashboard/applications-inbox";
+import { fetchUserPosts, serializeFeed } from "@/lib/feed";
+import { fetchIncomingApplications } from "@/lib/applications";
 import { getHandle, profilePath } from "@/lib/user-display";
 import {
   addSkill,
@@ -31,6 +35,7 @@ type PageProps = {
 
 const tabs: { id: string; label: string; icon: IconName }[] = [
   { id: "profile", label: "Profile", icon: "user" },
+  { id: "posts", label: "My posts", icon: "compose" },
   { id: "portfolio", label: "Portfolio", icon: "briefcase" },
   { id: "courses", label: "Courses", icon: "star" },
   { id: "market", label: "Market", icon: "marketplace" },
@@ -56,6 +61,16 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   ]);
 
   const handle = getHandle(user);
+
+  let userPosts: Awaited<ReturnType<typeof fetchUserPosts>> = [];
+  let incomingApplications: Awaited<ReturnType<typeof fetchIncomingApplications>> = [];
+
+  if (tab === "posts") {
+    [userPosts, incomingApplications] = await Promise.all([
+      fetchUserPosts(user.id),
+      fetchIncomingApplications(user.id),
+    ]);
+  }
 
   return (
     <AppShell title="Studio" showRightRail={false}>
@@ -153,6 +168,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 </div>
               </CardBody>
             </Card>
+          </div>
+        ) : null}
+
+        {tab === "posts" ? (
+          <div className="space-y-8">
+            <MyPostsPanel initialItems={serializeFeed(userPosts)} />
+            <div>
+              <h3 className="mb-3 px-1 text-lg font-bold">Applications inbox</h3>
+              <p className="mb-4 px-1 text-sm text-muted">
+                People who applied to your services, jobs, or team posts.
+              </p>
+              <ApplicationsInbox applications={incomingApplications} />
+            </div>
           </div>
         ) : null}
 

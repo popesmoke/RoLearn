@@ -22,7 +22,11 @@ export async function GET(request: Request) {
       const poll = async () => {
         try {
           const after = newest.getTime() > 0 ? newest : undefined;
-          const feed = await fetchFeed(40, after, user?.id);
+          const feed = await fetchFeed({
+            limit: 40,
+            after,
+            userId: user?.id,
+          });
           if (feed.length > 0) {
             newest = feed[0].createdAt;
             send({ type: "items", items: serializeFeed(feed) });

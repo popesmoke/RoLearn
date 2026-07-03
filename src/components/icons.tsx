@@ -32,6 +32,8 @@ const ICON_SRC: Record<string, string> = {
   refresh: "refresh",
   settings: "settings",
   share: "share",
+  trash: "trash-can",
+  more: "more",
 };
 
 export type IconName = keyof typeof ICON_SRC;

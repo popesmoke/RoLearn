@@ -1,7 +1,7 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
 const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -72,4 +72,39 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
   const filename = `${randomUUID()}.${ext}`;
   await writeFile(path.join(uploadsDir, filename), buffer);
   return { url: `/uploads/${filename}`, mediaType };
+}
+
+function keyFromPublicUrl(url: string): string | null {
+  const publicUrl = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+  if (publicUrl && url.startsWith(publicUrl + "/")) {
+    return url.slice(publicUrl.length + 1);
+  }
+  if (url.startsWith("/uploads/")) {
+    return url.slice(1);
+  }
+  return null;
+}
+
+export async function deleteMediaUrls(urls: string[]): Promise<void> {
+  if (urls.length === 0) return;
+
+  const r2 = getR2Client();
+  const bucket = process.env.R2_BUCKET_NAME;
+  const publicUrl = process.env.R2_PUBLIC_URL;
+
+  for (const url of urls) {
+    try {
+      if (r2 && bucket && publicUrl) {
+        const key = keyFromPublicUrl(url);
+        if (key) {
+          await r2.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+        }
+      } else if (url.startsWith("/uploads/")) {
+        const filePath = path.join(process.cwd(), "public", url);
+        await unlink(filePath).catch(() => undefined);
+      }
+    } catch (error) {
+      console.error("Failed to delete media:", url, error);
+    }
+  }
 }

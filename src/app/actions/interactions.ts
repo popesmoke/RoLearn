@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ListingType } from "@prisma/client";
+import { ApplicationStatus, ListingType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
+import { verifyApplicationOwner } from "@/lib/applications";
 
 async function notify(userId: string, type: string, title: string, body?: string, link?: string) {
   await prisma.notification.create({
@@ -178,4 +179,37 @@ export async function markNotificationsRead() {
     data: { readAt: new Date() },
   });
   revalidatePath("/notifications");
+}
+
+export async function respondToApplication(
+  applicationId: string,
+  status: "ACCEPTED" | "REJECTED",
+) {
+  const user = await requireUser();
+  const app = await verifyApplicationOwner(applicationId, user.id);
+  if (!app) {
+    return { error: "Application not found." };
+  }
+
+  if (app.status !== ApplicationStatus.PENDING) {
+    return { error: "Already responded." };
+  }
+
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: { status: status as ApplicationStatus },
+  });
+
+  const label = status === "ACCEPTED" ? "accepted" : "declined";
+  await notify(
+    app.applicantId,
+    "application_response",
+    status === "ACCEPTED" ? "Application accepted" : "Application declined",
+    `Your application was ${label}.`,
+    "/notifications",
+  );
+
+  revalidatePath("/dashboard");
+  revalidatePath("/notifications");
+  return { success: true };
 }

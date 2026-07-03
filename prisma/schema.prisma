@@ -159,6 +159,9 @@ model ServiceOffer {
   createdAt   DateTime      @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([userId])
 }
 
 model JobPost {
@@ -173,6 +176,10 @@ model JobPost {
   createdAt   DateTime @default(now())
 
   author User @relation("JobPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([authorId])
+  @@index([isOpen, createdAt(sort: Desc)])
 }
 
 model TeamPost {
@@ -186,6 +193,10 @@ model TeamPost {
   createdAt   DateTime      @default(now())
 
   author User @relation("TeamPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([authorId])
+  @@index([isOpen, createdAt(sort: Desc)])
 }
 
 model Application {
@@ -200,6 +211,7 @@ model Application {
   applicant User @relation(fields: [applicantId], references: [id], onDelete: Cascade)
 
   @@unique([applicantId, listingType, listingId])
+  @@index([listingType, listingId])
 }
 
 model PostLike {
@@ -212,6 +224,7 @@ model PostLike {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, listingType, listingId])
+  @@index([listingType, listingId])
 }
 
 model Notification {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import {
   generateVerificationCode,
   isValidRobloxUsername,
@@ -9,6 +10,15 @@ import {
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const limited = rateLimit(`roblox-challenge:${ip}`, 10, 60_000);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Too many attempts. Wait a minute and try again." },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+      );
+    }
+
     const body = (await request.json()) as { username?: string };
     const username = normalizeUsername(body.username ?? "");
 

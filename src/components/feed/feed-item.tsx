@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ApplyButton } from "@/components/apply-button";
 import { ContactButton } from "@/components/contact-button";
 import { LikeButton } from "@/components/like-button";
+import { PostOwnerMenu } from "@/components/feed/post-owner-menu";
 import { formatBudget, formatCategory, formatUsd, timeAgo } from "@/lib/utils";
 import { getDisplayName, getHandle, profilePath } from "@/lib/user-display";
 
@@ -33,18 +35,26 @@ type FeedItemProps = {
   mediaUrls?: string[];
   likeCount?: number;
   likedByMe?: boolean;
+  isOpen?: boolean;
+  onDeleted?: () => void;
 };
 
 const typeLabels = {
-  service: { label: "Service", variant: "accent" as const },
-  job: { label: "Job", variant: "warning" as const },
-  team: { label: "Team", variant: "success" as const },
+  service: { label: "Service", hint: "Creator offering work", variant: "accent" as const },
+  job: { label: "Job", hint: "Paid contract work", variant: "warning" as const },
+  team: { label: "Team", hint: "Recruiting collaborators", variant: "success" as const },
 };
 
 const listingTypeMap = {
   service: "SERVICE" as const,
   job: "JOB" as const,
   team: "TEAM" as const,
+};
+
+const applyLabels = {
+  service: { action: "Hire", hint: "Apply to hire this creator" },
+  job: { action: "Apply", hint: "Apply for this job" },
+  team: { action: "Join", hint: "Apply to join the team" },
 };
 
 function MediaGallery({ urls }: { urls: string[] }) {
@@ -89,25 +99,49 @@ export function FeedItem({
   mediaUrls = [],
   likeCount = 0,
   likedByMe = false,
+  isOpen = true,
+  onDeleted,
 }: FeedItemProps) {
+  const { data: session } = useSession();
   const meta = typeLabels[type];
+  const apply = applyLabels[type];
   const handle = getHandle(author);
   const displayName = getDisplayName(author);
+  const isOwner = Boolean(session?.user?.id && author.id && session.user.id === author.id);
 
   return (
     <article className="surface-panel p-4 transition hover:border-accent/30">
       <div className="flex gap-3">
-        <Link href={profilePath(author)}>
+        <Link href={profilePath(author)} className="shrink-0">
           <Avatar src={author.avatarUrl} name={author.displayName} email={author.email} size="md" />
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Link href={profilePath(author)} className="font-semibold hover:text-accent">
-              {displayName}
-            </Link>
-            <span className="text-sm text-muted">@{handle}</span>
-            <span className="text-sm text-subtle">· {timeAgo(createdAt)}</span>
-            <Badge variant={meta.variant}>{meta.label}</Badge>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <Link href={profilePath(author)} className="font-semibold hover:text-accent">
+                {displayName}
+              </Link>
+              <span className="text-sm text-muted">@{handle}</span>
+              <span className="text-sm text-subtle">· {timeAgo(createdAt)}</span>
+              <span title={meta.hint}>
+                <Badge variant={meta.variant}>{meta.label}</Badge>
+              </span>
+              {isOwner ? (
+                <Badge variant="secondary" className="text-xs">
+                  Your post
+                </Badge>
+              ) : null}
+            </div>
+            {author.id ? (
+              <PostOwnerMenu
+                postType={type}
+                postId={id}
+                authorId={author.id}
+                canClose={type !== "service"}
+                isOpen={isOpen}
+                onDeleted={onDeleted}
+              />
+            ) : null}
           </div>
 
           <h3 className="mt-2 text-[17px] font-bold leading-snug">{title}</h3>
@@ -127,13 +161,18 @@ export function FeedItem({
             ) : null}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <ApplyButton
-              listingType={listingTypeMap[type]}
-              listingId={id}
-              label={type === "job" ? "Apply" : type === "team" ? "Join" : "Hire"}
-            />
-            {author.id ? <ContactButton userId={author.id} /> : null}
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            {!isOwner ? (
+              <ApplyButton
+                listingType={listingTypeMap[type]}
+                listingId={id}
+                label={apply.action}
+                title={apply.hint}
+              />
+            ) : (
+              <span className="text-xs text-muted">Your listing — others can apply</span>
+            )}
+            {author.id && !isOwner ? <ContactButton userId={author.id} /> : null}
             <LikeButton
               listingType={listingTypeMap[type]}
               listingId={id}

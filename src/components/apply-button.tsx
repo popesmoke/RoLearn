@@ -11,9 +11,10 @@ type ApplyButtonProps = {
   listingType: "SERVICE" | "JOB" | "TEAM";
   listingId: string;
   label?: string;
+  title?: string;
 };
 
-export function ApplyButton({ listingType, listingId, label = "Apply" }: ApplyButtonProps) {
+export function ApplyButton({ listingType, listingId, label = "Apply", title }: ApplyButtonProps) {
   const { data: session } = useSession();
   const [showLogin, setShowLogin] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -54,6 +55,7 @@ export function ApplyButton({ listingType, listingId, label = "Apply" }: ApplyBu
         onClick={handleApply}
         disabled={status === "loading"}
         className="gap-1.5"
+        title={title}
       >
         <Icon8 name="apply" size={16} />
         {status === "loading" ? "Applying…" : status === "error" ? "Try again" : label}

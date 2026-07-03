@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/user";
 import { AppShell } from "@/components/layout/app-shell";
 import { LiveFeed } from "@/components/feed/live-feed";
 import { QuickCompose } from "@/components/compose/quick-compose";
+import { FeedGuide } from "@/components/feed/feed-guide";
 import { ButtonLink } from "@/components/ui/button";
 import { Icon8 } from "@/components/icons";
 
@@ -11,20 +12,21 @@ export const dynamic = "force-dynamic";
 
 export default async function ExplorePage() {
   const user = await getCurrentUser();
-  const feed = await fetchFeed(40, undefined, user?.id);
+  const feed = await fetchFeed({ limit: 20, userId: user?.id });
   const initialItems = serializeFeed(feed);
 
   return (
     <AppShell
       title="Live feed"
-      subtitle="Real-time updates from creators worldwide"
+      subtitle="Services · Jobs · Teams — updated in real time"
       headerAction={
         <ButtonLink href="/compose" size="sm" className="gap-1.5">
           <Icon8 name="plus" size={16} />
-          Post
+          New post
         </ButtonLink>
       }
     >
+      <FeedGuide />
       <QuickCompose />
       <LiveFeed initialItems={initialItems} />
 
@@ -34,11 +36,11 @@ export default async function ExplorePage() {
         </Link>
         {" · "}
         <Link href="/teamfinder" className="text-accent hover:underline">
-          Teams
+          Find teammates
         </Link>
         {" · "}
-        <Link href="/compose" className="text-accent hover:underline">
-          Full editor
+        <Link href="/dashboard?tab=posts" className="text-accent hover:underline">
+          Your posts
         </Link>
       </div>
     </AppShell>
