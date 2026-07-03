@@ -5,7 +5,15 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "lh3.googleusercontent.com",
+        hostname: "tr.rbxcdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "www.roblox.com",
+      },
+      {
+        protocol: "https",
+        hostname: "img.icons8.com",
       },
     ],
   },

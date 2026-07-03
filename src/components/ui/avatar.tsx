@@ -31,7 +31,7 @@ export function Avatar({ src, name, email, size = "md", className }: AvatarProps
         alt={name ?? "User avatar"}
         width={imageSize[size]}
         height={imageSize[size]}
-        className={cn("rounded-full object-cover", sizeMap[size], className)}
+        className={cn("rounded-xl object-cover ring-2 ring-border", sizeMap[size], className)}
       />
     );
   }
@@ -39,7 +39,7 @@ export function Avatar({ src, name, email, size = "md", className }: AvatarProps
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-blue-600 font-semibold text-white",
+        "flex items-center justify-center rounded-xl bg-gradient-to-br from-accent to-secondary font-semibold text-white ring-2 ring-border",
         sizeMap[size],
         className,
       )}

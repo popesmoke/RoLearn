@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 
 const variants = {
   primary:
-    "bg-sky-500 text-white hover:bg-sky-400 active:bg-sky-600 disabled:bg-sky-500/50",
+    "bg-accent text-white hover:bg-accent-hover active:brightness-95 disabled:bg-accent/50",
   secondary:
-    "bg-white text-black hover:bg-zinc-200 active:bg-zinc-300 disabled:bg-white/50",
+    "bg-secondary text-white hover:bg-secondary-hover active:brightness-95 disabled:bg-secondary/50",
   outline:
     "border border-border bg-transparent text-foreground hover:bg-surface-hover active:bg-surface-elevated",
   ghost:
@@ -40,8 +40,8 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center rounded-full font-semibold transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50",
+        "inline-flex items-center justify-center rounded-xl font-semibold transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
         "disabled:cursor-not-allowed disabled:opacity-60",
         variants[variant],
         sizes[size],
@@ -71,8 +71,8 @@ export function ButtonLink({
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center justify-center rounded-full font-semibold transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50",
+        "inline-flex items-center justify-center rounded-xl font-semibold transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
         variants[variant],
         sizes[size],
         className,

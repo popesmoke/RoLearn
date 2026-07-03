@@ -5,6 +5,7 @@ import { SkillCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { skillCategories } from "@/lib/constants";
+import { profilePath } from "@/lib/user-display";
 
 function safeCategory(value: FormDataEntryValue | null): SkillCategory {
   const raw = String(value ?? "");
@@ -22,9 +23,18 @@ function toInt(value: FormDataEntryValue | null): number | null {
   return parsed;
 }
 
+function revalidateUserPaths(user: { username: string }) {
+  revalidatePath("/dashboard");
+  revalidatePath("/explore");
+  revalidatePath("/marketplace");
+  revalidatePath("/teamfinder");
+  revalidatePath("/search");
+  revalidatePath(profilePath(user));
+}
+
 export async function updateProfile(formData: FormData) {
   const user = await requireUser();
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: user.id },
     data: {
       displayName: String(formData.get("displayName") ?? "").trim() || null,
@@ -32,8 +42,7 @@ export async function updateProfile(formData: FormData) {
       hireMeOpen: formData.get("hireMeOpen") === "on",
     },
   });
-  revalidatePath("/dashboard");
-  revalidatePath("/explore");
+  revalidateUserPaths(updated);
 }
 
 export async function addSkill(formData: FormData) {
@@ -53,8 +62,7 @@ export async function addSkill(formData: FormData) {
     },
     update: {},
   });
-  revalidatePath("/dashboard");
-  revalidatePath("/explore");
+  revalidateUserPaths(user);
 }
 
 export async function createPortfolioItem(formData: FormData) {
@@ -69,8 +77,7 @@ export async function createPortfolioItem(formData: FormData) {
       assetId: String(formData.get("assetId") ?? "").trim() || null,
     },
   });
-  revalidatePath("/dashboard");
-  revalidatePath("/explore");
+  revalidateUserPaths(user);
 }
 
 export async function createCourse(formData: FormData) {
@@ -94,8 +101,7 @@ export async function createCourse(formData: FormData) {
       },
     },
   });
-  revalidatePath("/dashboard");
-  revalidatePath("/explore");
+  revalidateUserPaths(user);
 }
 
 export async function createService(formData: FormData) {
@@ -109,10 +115,7 @@ export async function createService(formData: FormData) {
       basePrice: toInt(formData.get("basePriceUsd")),
     },
   });
-  revalidatePath("/dashboard");
-  revalidatePath("/explore");
-  revalidatePath("/marketplace");
-  revalidatePath("/explore");
+  revalidateUserPaths(user);
 }
 
 export async function createJob(formData: FormData) {
@@ -126,10 +129,7 @@ export async function createJob(formData: FormData) {
       budgetMax: toInt(formData.get("budgetMaxUsd")),
     },
   });
-  revalidatePath("/dashboard");
-  revalidatePath("/explore");
-  revalidatePath("/marketplace");
-  revalidatePath("/explore");
+  revalidateUserPaths(user);
 }
 
 export async function createTeamPost(formData: FormData) {
@@ -142,8 +142,5 @@ export async function createTeamPost(formData: FormData) {
       neededRole: safeCategory(formData.get("neededRole")),
     },
   });
-  revalidatePath("/dashboard");
-  revalidatePath("/explore");
-  revalidatePath("/teamfinder");
-  revalidatePath("/explore");
+  revalidateUserPaths(user);
 }

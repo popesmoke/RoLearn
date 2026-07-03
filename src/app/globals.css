@@ -1,16 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #000000;
-  --foreground: #e7e9ea;
-  --muted: #71767b;
-  --subtle: #536471;
-  --surface: #000000;
-  --surface-elevated: #16181c;
-  --surface-hover: #181818;
-  --border: #2f3336;
-  --accent: #1d9bf0;
-  --accent-hover: #1a8cd8;
+  --background: #0c0c12;
+  --foreground: #eeedf3;
+  --muted: #9494a8;
+  --subtle: #6b6b7e;
+  --surface: #12121a;
+  --surface-elevated: #1a1a26;
+  --surface-hover: #222230;
+  --border: #2e2e40;
+  --accent: #ff5c35;
+  --accent-hover: #ff7a5c;
+  --accent-muted: #ff5c3520;
+  --secondary: #7c5cfc;
+  --secondary-hover: #9478ff;
+  --success: #34d399;
+  --warning: #fbbf24;
 }
 
 @theme inline {
@@ -24,12 +29,17 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 * {
-  scrollbar-color: #38444d transparent;
+  scrollbar-color: #3a3a50 transparent;
 }
 
 body {
@@ -39,7 +49,7 @@ body {
 }
 
 ::selection {
-  background: rgb(29 155 240 / 30%);
+  background: rgb(255 92 53 / 25%);
 }
 
 .app-grid {
@@ -50,18 +60,21 @@ body {
 
 @media (min-width: 1024px) {
   .app-grid {
-    grid-template-columns: 275px minmax(0, 600px) minmax(0, 1fr);
+    grid-template-columns: 240px minmax(0, 1fr) 300px;
   }
 }
 
 @media (min-width: 1280px) {
   .app-grid {
-    grid-template-columns: 275px minmax(0, 600px) 350px;
+    grid-template-columns: 260px minmax(0, 720px) 320px;
   }
 }
 
-.feed-divider > * + * {
-  border-top: 1px solid var(--border);
+.feed-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
 }
 
 .surface-panel {
@@ -70,12 +83,15 @@ body {
   border-radius: 1rem;
 }
 
-.hero-grid {
-  background-image:
-    linear-gradient(to right, rgb(47 51 54 / 35%) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(47 51 54 / 35%) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent);
+.hero-gradient {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgb(124 92 252 / 18%), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgb(255 92 53 / 10%), transparent),
+    var(--background);
+}
+
+.glow-accent {
+  box-shadow: 0 0 40px rgb(255 92 53 / 15%);
 }
 
 @keyframes fade-up {
@@ -90,5 +106,16 @@ body {
 }
 
 .animate-fade-up {
-  animation: fade-up 0.5s ease-out both;
+  animation: fade-up 0.4s ease-out both;
+}
+
+.nav-active {
+  background: var(--accent-muted);
+  color: var(--accent);
+  border-left: 3px solid var(--accent);
+}
+
+.tab-active {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
 }

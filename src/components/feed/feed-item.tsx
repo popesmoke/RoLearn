@@ -1,15 +1,22 @@
+import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { BookmarkIcon, ShareIcon } from "@/components/icons";
+import { ApplyButton } from "@/components/apply-button";
+import { ContactButton } from "@/components/contact-button";
 import { formatBudget, formatCategory, formatUsd, timeAgo } from "@/lib/utils";
+import { getDisplayName, getHandle, profilePath } from "@/lib/user-display";
 
 export type FeedAuthor = {
+  id?: string;
+  username?: string | null;
+  robloxUsername?: string | null;
   displayName: string | null;
   email: string;
   avatarUrl?: string | null;
 };
 
 type FeedItemProps = {
+  id: string;
   type: "service" | "job" | "team";
   title: string;
   description: string;
@@ -27,7 +34,14 @@ const typeLabels = {
   team: { label: "Team", variant: "success" as const },
 };
 
+const listingTypeMap = {
+  service: "SERVICE" as const,
+  job: "JOB" as const,
+  team: "TEAM" as const,
+};
+
 export function FeedItem({
+  id,
   type,
   title,
   description,
@@ -39,45 +53,50 @@ export function FeedItem({
   budgetMax,
 }: FeedItemProps) {
   const meta = typeLabels[type];
+  const handle = getHandle(author);
+  const displayName = getDisplayName(author);
 
   return (
-    <article className="px-4 py-4 transition hover:bg-surface-hover/60">
+    <article className="surface-panel p-4 transition hover:border-accent/30">
       <div className="flex gap-3">
-        <Avatar
-          src={author.avatarUrl}
-          name={author.displayName}
-          email={author.email}
-          size="md"
-        />
+        <Link href={profilePath(author)}>
+          <Avatar
+            src={author.avatarUrl}
+            name={author.displayName}
+            email={author.email}
+            size="md"
+          />
+        </Link>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="font-semibold">
-              {author.displayName ?? author.email.split("@")[0]}
-            </span>
-            <span className="text-sm text-muted">@{author.email.split("@")[0]}</span>
-            <span className="text-sm text-muted">· {timeAgo(createdAt)}</span>
+            <Link href={profilePath(author)} className="font-semibold hover:text-accent">
+              {displayName}
+            </Link>
+            <span className="text-sm text-muted">@{handle}</span>
+            <span className="text-sm text-subtle">· {timeAgo(createdAt)}</span>
             <Badge variant={meta.variant}>{meta.label}</Badge>
           </div>
 
-          <h3 className="mt-1 text-[17px] font-semibold leading-snug">{title}</h3>
-          <p className="mt-1 text-[15px] leading-relaxed text-muted">{description}</p>
+          <h3 className="mt-2 text-[17px] font-bold leading-snug">{title}</h3>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-muted line-clamp-3">{description}</p>
 
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            {category ? <Badge>{formatCategory(category)}</Badge> : null}
+            {category ? <Badge variant="secondary">{formatCategory(category)}</Badge> : null}
             {type === "service" && price != null ? (
-              <span className="font-medium text-sky-400">From {formatUsd(price)}</span>
+              <span className="font-semibold text-accent">From {formatUsd(price)}</span>
             ) : null}
             {type === "job" ? (
-              <span className="font-medium text-amber-300">{formatBudget(budgetMin ?? null, budgetMax ?? null)}</span>
+              <span className="font-semibold text-warning">{formatBudget(budgetMin ?? null, budgetMax ?? null)}</span>
             ) : null}
           </div>
 
-          <div className="mt-4 flex max-w-md items-center justify-between text-subtle">
-            <span className="text-sm font-medium text-sky-400">Open listing</span>
-            <div className="flex gap-3">
-              <ShareIcon className="h-[18px] w-[18px]" aria-hidden />
-              <BookmarkIcon className="h-[18px] w-[18px]" aria-hidden />
-            </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <ApplyButton
+              listingType={listingTypeMap[type]}
+              listingId={id}
+              label={type === "job" ? "Apply" : type === "team" ? "Join team" : "Hire"}
+            />
+            {author.id ? <ContactButton userId={author.id} /> : null}
           </div>
         </div>
       </div>

@@ -10,7 +10,9 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Icon8, icons } from "@/components/icon8";
 import { cn, formatCategory, trustLevelStyles } from "@/lib/utils";
+import { getHandle, profilePath } from "@/lib/user-display";
 import {
   addSkill,
   createCourse,
@@ -28,11 +30,11 @@ type PageProps = {
 };
 
 const tabs = [
-  { id: "profile", label: "Profile" },
-  { id: "portfolio", label: "Portfolio" },
-  { id: "courses", label: "Courses" },
-  { id: "market", label: "Market" },
-  { id: "recruit", label: "Recruit" },
+  { id: "profile", label: "Profile", icon: icons.user },
+  { id: "portfolio", label: "Portfolio", icon: icons.briefcase },
+  { id: "courses", label: "Courses", icon: icons.star },
+  { id: "market", label: "Market", icon: icons.marketplace },
+  { id: "recruit", label: "Recruit", icon: icons.teams },
 ];
 
 export default async function DashboardPage({ searchParams }: PageProps) {
@@ -53,6 +55,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     prisma.teamPost.findMany({ where: { authorId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
 
+  const handle = getHandle(user);
+
   return (
     <AppShell title="Studio" showRightRail={false}>
       <div className="border-b border-border">
@@ -65,8 +69,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               size="lg"
             />
             <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-bold">{user.displayName ?? user.email}</h2>
-              <p className="text-sm text-muted">@{user.email.split("@")[0]}</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold">{user.displayName ?? handle}</h2>
+                {user.isVerified ? <Icon8 name={icons.verified} size={20} alt="Verified" /> : null}
+              </div>
+              <p className="text-sm text-muted">@{handle}</p>
+              <Link href={profilePath(user)} className="text-sm text-accent hover:underline">
+                View public profile
+              </Link>
               {user.aboutMe ? (
                 <p className="mt-2 text-[15px] leading-relaxed text-muted">{user.aboutMe}</p>
               ) : (
@@ -84,19 +94,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        <div className="flex overflow-x-auto">
+        <div className="flex overflow-x-auto border-t border-border">
           {tabs.map((item) => (
             <Link
               key={item.id}
               href={`/dashboard?tab=${item.id}`}
               className={cn(
-                "min-w-[100px] flex-1 whitespace-nowrap py-4 text-center text-[15px] font-medium transition hover:bg-surface-hover",
-                tab === item.id
-                  ? "border-b-4 border-sky-500 font-bold"
-                  : "text-muted",
+                "flex min-w-[100px] flex-1 items-center justify-center gap-2 whitespace-nowrap py-3.5 text-center text-[15px] font-medium transition hover:bg-surface-hover",
+                tab === item.id ? "tab-active font-bold" : "text-muted",
               )}
             >
-              {item.label}
+              <Icon8 name={item.icon} size={18} />
+              <span className="hidden sm:inline">{item.label}</span>
             </Link>
           ))}
         </div>

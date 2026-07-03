@@ -1,26 +1,28 @@
-# RoLearn - Full Free Hosting Tutorial (Google Login Now, Roblox Later)
+# RoLearn — Free Hosting & Setup Guide
 
-This is the complete free setup for launching RoLearn today.
+Run RoLearn completely free using Roblox bio verification, Vercel hosting, and a free PostgreSQL database.
 
-- Auth now: **Google OAuth** (free and quick to ship)
-- Auth later: **Roblox OAuth** (after Roblox verification is approved)
-- Hosting: **Vercel**
-- Database: **Neon PostgreSQL**
-- Optional storage/cache/email: **Cloudflare R2**, **Upstash**, **Resend**
-
-## 1) Free stack (recommended)
+## Free stack
 
 | Service | Use | Free tier |
 |---|---|---|
 | [Vercel](https://vercel.com) | Next.js hosting + API routes | Hobby plan |
-| [Neon](https://neon.tech) | PostgreSQL database | 512 MB |
-| [Google Cloud OAuth](https://console.cloud.google.com/) | Login provider | Free |
-| [GitHub](https://github.com) | Repo + CI | Free |
-| [Cloudflare R2](https://www.cloudflare.com/products/r2/) | Media uploads | 10 GB |
-| [Upstash](https://upstash.com) | Redis/rate-limit | 10K commands/day |
-| [Resend](https://resend.com) | Transactional email | 100/day |
+| [Neon](https://neon.tech) | PostgreSQL database | 512 MB storage |
+| [GitHub](https://github.com) | Code + auto-deploy | Free |
+| [Icons8](https://icons8.com) | UI icons (loaded via CDN) | Free with attribution |
+| [Roblox API](https://create.roblox.com/docs) | Account verification | Free, no API key needed |
 
-## 2) Clone and run locally
+Optional later (still free tiers available):
+
+| Service | Use |
+|---|---|
+| [Cloudflare R2](https://www.cloudflare.com/products/r2/) | File uploads (10 GB free) |
+| [Upstash](https://upstash.com) | Redis cache (10K commands/day) |
+| [Resend](https://resend.com) | Email (100/day) |
+
+---
+
+## 1) Clone and install
 
 ```bash
 git clone https://github.com/popesmoke/RoLearn.git
@@ -29,149 +31,173 @@ npm install
 cp .env.example .env
 ```
 
-Fill `.env` with at least:
+## 2) Create a free Neon database
+
+1. Go to [console.neon.tech](https://console.neon.tech)
+2. Create a project named `rolearn`
+3. Copy the **pooled** connection string
+4. Paste it into `.env`:
 
 ```env
-DATABASE_URL="postgresql://..."
-AUTH_SECRET="generate_with_openssl"
-NEXTAUTH_SECRET="same_as_auth_secret_or_another_secure_value"
-GOOGLE_CLIENT_ID="..."
-GOOGLE_CLIENT_SECRET="..."
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXTAUTH_URL="http://localhost:3000"
+DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require"
 ```
 
-Generate secret:
-
-```bash
-openssl rand -base64 32
-```
-
-## 3) Create free Neon database
-
-1. Go to [Neon Console](https://console.neon.tech)
-2. Create project: `rolearn`
-3. Copy pooled connection string
-4. Put it in `DATABASE_URL`
-
-Then run:
+Push the schema:
 
 ```bash
 npx prisma db push
 ```
 
-## 4) Configure Google OAuth (required)
+## 3) Set environment variables
 
-1. Open [Google Cloud Console](https://console.cloud.google.com/)
-2. Create/select a project
-3. Go to **APIs & Services -> OAuth consent screen**
-4. Configure app (External is fine for startup/testing)
-5. Add test users if app is in testing mode
-6. Go to **Credentials -> Create Credentials -> OAuth client ID**
-7. App type: **Web application**
+Edit `.env`:
 
-Add Authorized redirect URIs:
+```env
+DATABASE_URL="postgresql://..."
+AUTH_SECRET="your-random-secret-here"
+NEXTAUTH_SECRET="same-or-different-secret"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXTAUTH_URL="http://localhost:3000"
+```
 
-- Local: `http://localhost:3000/api/auth/callback/google`
-- Prod: `https://YOUR_APP.vercel.app/api/auth/callback/google`
+Generate a secure secret:
 
-Copy values into env:
+```bash
+# macOS / Linux
+openssl rand -base64 32
 
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
+# Windows PowerShell
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+```
 
-## 5) Start local app
+No Google OAuth or Roblox API keys are required — login uses Roblox bio verification.
+
+## 4) Run locally
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000` and click **Sign in with Google**.
+Open [http://localhost:3000](http://localhost:3000).
 
-## 6) Deploy to Vercel (free)
+### How login works
 
-1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Import `RoLearn` repo from GitHub
-3. Add environment variables:
+1. Click **Sign in with Roblox**
+2. Enter your Roblox username
+3. Copy the generated code (e.g. `RL-VERIFY-A7X9K2`)
+4. Set your Roblox profile bio to **only** that code
+5. Click **Verify** — RoLearn checks your bio via the Roblox API
+6. Change your bio back anytime after signing in
+
+---
+
+## 5) Deploy to Vercel (free)
+
+1. Push your repo to GitHub
+2. Go to [vercel.com/dashboard](https://vercel.com/dashboard)
+3. **Add New Project** → import your RoLearn repo
+4. Add these environment variables:
 
 | Variable | Value |
 |---|---|
-| `DATABASE_URL` | Neon pooled URL |
-| `AUTH_SECRET` | Output of `openssl rand -base64 32` |
-| `NEXTAUTH_SECRET` | Same secure random value (recommended) |
-| `GOOGLE_CLIENT_ID` | From Google OAuth client |
-| `GOOGLE_CLIENT_SECRET` | From Google OAuth client |
-| `NEXT_PUBLIC_APP_URL` | `https://YOUR_APP.vercel.app` |
-| `NEXTAUTH_URL` | `https://YOUR_APP.vercel.app` |
+| `DATABASE_URL` | Neon pooled connection string |
+| `AUTH_SECRET` | Random 32+ char secret |
+| `NEXTAUTH_SECRET` | Same or another secret |
+| `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` |
+| `NEXTAUTH_URL` | `https://your-app.vercel.app` |
 
-4. Deploy
+5. Click **Deploy**
 
-After first deploy, update Google OAuth redirect URI with the exact Vercel URL if needed.
+After deploy, run `npx prisma db push` against your production database if tables don't exist yet (or run it locally with the production `DATABASE_URL`).
 
-## 7) GitHub push workflow
+Vercel auto-redeploys on every `git push` to main.
+
+---
+
+## 6) GitHub workflow
 
 ```bash
 git add .
-git commit -m "Add Google auth and update free hosting tutorial"
-git push
+git commit -m "Your changes"
+git push origin main
 ```
 
-Vercel will auto-deploy on push.
+CI runs lint + build on every push. Vercel deploys automatically.
 
-## 8) Optional free add-ons
+---
 
-### Cloudflare R2 (course videos/files)
+## 7) What you get for $0
 
-Set:
+- Roblox-verified creator accounts
+- Public profiles at `/u/username`
+- Marketplace (services + jobs)
+- Team finder with apply buttons
+- Direct messages between creators
+- Search with skill/type filters
+- Creator studio dashboard
+- PostgreSQL database (Neon free tier)
+- HTTPS hosting (Vercel free tier)
 
-- `R2_ACCOUNT_ID`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- `R2_BUCKET_NAME`
-- `R2_PUBLIC_URL`
+---
 
-### Upstash (rate limits/caching)
+## 8) Troubleshooting
 
-Set:
+**"Verification failed"**
+- Bio must contain **exactly** the code — no extra text, spaces, or emojis
+- Wait a few seconds after saving your Roblox bio before clicking Verify
+- Codes expire after 15 minutes — generate a new one if needed
 
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
+**Database connection errors**
+- Use Neon's **pooled** connection string (not direct)
+- Ensure `?sslmode=require` is in the URL
 
-### Resend (emails)
+**Build fails on Vercel**
+- Check all env vars are set
+- `AUTH_SECRET` must be at least 32 characters
 
-Set:
+**Roblox avatar not loading**
+- Roblox CDN URLs are allowed in `next.config.ts` — redeploy if you changed config
 
-- `RESEND_API_KEY`
+**Prisma schema changes**
+- Run `npx prisma db push` after pulling updates
+- Run `npx prisma generate` if types are stale
 
-## 9) Roblox OAuth later (when verification passes)
+---
 
-Keep these vars ready for future migration:
+## 9) Staying free long-term
 
-- `ROBLOX_CLIENT_ID`
-- `ROBLOX_CLIENT_SECRET`
-- `ROBLOX_REDIRECT_URI`
+- Neon free tier: 512 MB — plenty for early stage
+- Vercel Hobby: 100 GB bandwidth/month — enough for thousands of users
+- Roblox API: no rate limits for basic user lookups at small scale
+- Icons8: icons load from their CDN (free tier)
 
-Recommended migration plan:
+When you outgrow free tiers, Neon and Vercel have affordable paid plans. But you can launch and run a real product on $0/month.
 
-1. Keep Google login active
-2. Add Roblox as second provider
-3. Let users link Roblox account in profile settings
-4. Gradually make Roblox identity the primary profile signal
+---
 
-## 10) Troubleshooting
+## 10) Optional upgrades (still mostly free)
 
-**Google login shows redirect URI mismatch**
-- Check URI is exact (scheme, domain, path, no extra slash)
+### Cloudflare R2 for uploads
 
-**Build succeeds but auth fails in production**
-- Recheck Vercel env vars and redeploy
+```env
+R2_ACCOUNT_ID=""
+R2_ACCESS_KEY_ID=""
+R2_SECRET_ACCESS_KEY=""
+R2_BUCKET_NAME="rolearn-uploads"
+R2_PUBLIC_URL=""
+```
 
-**Database errors on deploy**
-- Verify `DATABASE_URL` is pooled Neon URL
+### Upstash Redis for caching
 
-**Missing secret error**
-- Ensure `AUTH_SECRET` exists in local `.env` and Vercel env
+```env
+UPSTASH_REDIS_REST_URL=""
+UPSTASH_REDIS_REST_TOKEN=""
+```
 
-## 11) Reality check on "100% free"
+### Resend for email notifications
 
-You can run fully free at early stage. As usage grows, you may outgrow free limits, but this setup is the most practical no-cost launch path.
+```env
+RESEND_API_KEY=""
+```
+
+These are wired in `.env.example` for future use — not required to launch.

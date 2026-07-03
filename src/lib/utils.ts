@@ -47,8 +47,8 @@ export function initials(name: string | null | undefined, email?: string | null)
 
 export const trustLevelStyles: Record<string, string> = {
   NEW: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
-  RISING: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+  RISING: "bg-accent/15 text-accent border-accent/30",
   TRUSTED: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  VERIFIED: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  VERIFIED: "bg-secondary/15 text-secondary border-secondary/30",
   ELITE: "bg-amber-500/15 text-amber-300 border-amber-500/30",
 };
