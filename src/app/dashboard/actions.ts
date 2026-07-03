@@ -23,13 +23,15 @@ function toInt(value: FormDataEntryValue | null): number | null {
   return parsed;
 }
 
-function revalidateUserPaths(user: { username: string }) {
+function revalidateUserPaths(user: { username?: string | null }) {
   revalidatePath("/dashboard");
   revalidatePath("/explore");
   revalidatePath("/marketplace");
   revalidatePath("/teamfinder");
   revalidatePath("/search");
-  revalidatePath(profilePath(user));
+  if (user.username) {
+    revalidatePath(profilePath(user));
+  }
 }
 
 export async function updateProfile(formData: FormData) {

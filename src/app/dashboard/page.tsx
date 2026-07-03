@@ -10,7 +10,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Icon8, icons } from "@/components/icon8";
+import { AppIcon, type IconName } from "@/components/icons";
 import { cn, formatCategory, trustLevelStyles } from "@/lib/utils";
 import { getHandle, profilePath } from "@/lib/user-display";
 import {
@@ -29,12 +29,12 @@ type PageProps = {
   searchParams: Promise<{ tab?: string }>;
 };
 
-const tabs = [
-  { id: "profile", label: "Profile", icon: icons.user },
-  { id: "portfolio", label: "Portfolio", icon: icons.briefcase },
-  { id: "courses", label: "Courses", icon: icons.star },
-  { id: "market", label: "Market", icon: icons.marketplace },
-  { id: "recruit", label: "Recruit", icon: icons.teams },
+const tabs: { id: string; label: string; icon: IconName }[] = [
+  { id: "profile", label: "Profile", icon: "user" },
+  { id: "portfolio", label: "Portfolio", icon: "briefcase" },
+  { id: "courses", label: "Courses", icon: "star" },
+  { id: "market", label: "Market", icon: "marketplace" },
+  { id: "recruit", label: "Recruit", icon: "teams" },
 ];
 
 export default async function DashboardPage({ searchParams }: PageProps) {
@@ -71,7 +71,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold">{user.displayName ?? handle}</h2>
-                {user.isVerified ? <Icon8 name={icons.verified} size={20} alt="Verified" /> : null}
+                {user.isVerified ? <AppIcon name="verified" size={20} /> : null}
               </div>
               <p className="text-sm text-muted">@{handle}</p>
               <Link href={profilePath(user)} className="text-sm text-accent hover:underline">
@@ -104,7 +104,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 tab === item.id ? "tab-active font-bold" : "text-muted",
               )}
             >
-              <Icon8 name={item.icon} size={18} />
+              <AppIcon name={item.icon} size={18} />
               <span className="hidden sm:inline">{item.label}</span>
             </Link>
           ))}

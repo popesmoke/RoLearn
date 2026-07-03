@@ -25,7 +25,9 @@ export async function POST(request: Request) {
     }
 
     await prisma.verificationChallenge.deleteMany({
-      where: { robloxUsername: username },
+      where: {
+        robloxUsername: { equals: robloxUser.name, mode: "insensitive" },
+      },
     });
 
     const code = generateVerificationCode();
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
 
     await prisma.verificationChallenge.create({
       data: {
-        robloxUsername: username,
+        robloxUsername: robloxUser.name,
         code,
         robloxUserId: String(robloxUser.id),
         expiresAt,
@@ -47,7 +49,8 @@ export async function POST(request: Request) {
       expiresAt: expiresAt.toISOString(),
       profileUrl: `https://www.roblox.com/users/${robloxUser.id}/profile`,
     });
-  } catch {
+  } catch (error) {
+    console.error("Roblox challenge error:", error);
     return NextResponse.json({ error: "Something went wrong. Try again." }, { status: 500 });
   }
 }

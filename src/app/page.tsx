@@ -3,23 +3,23 @@ import Link from "next/link";
 import { AuthButtons, MarketingAuthButtons } from "@/components/auth-buttons";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { Icon8, icons } from "@/components/icon8";
+import { AppIcon, type IconName } from "@/components/icons";
 import { skillCategories } from "@/lib/constants";
 import { formatCategory } from "@/lib/utils";
 
-const highlights = [
+const highlights: { icon: IconName; title: string; description: string }[] = [
   {
-    icon: icons.game,
+    icon: "game",
     title: "Roblox-native identity",
     description: "Sign in with your Roblox account — verified through your profile bio. No Google, no passwords.",
   },
   {
-    icon: icons.studio,
+    icon: "studio",
     title: "Creator studio",
     description: "Manage your profile, portfolio, courses, gigs, and recruitment from one workspace.",
   },
   {
-    icon: icons.verified,
+    icon: "verified",
     title: "Trust that counts",
     description: "Verified accounts, hire-me status, and reputation — built for how Roblox studios actually work.",
   },
@@ -105,7 +105,7 @@ export default function Home() {
             <div className="grid gap-6 md:grid-cols-3">
               {highlights.map((item) => (
                 <div key={item.title} className="surface-panel p-6">
-                  <Icon8 name={item.icon} size={36} className="mb-3" />
+                  <AppIcon name={item.icon} size={36} className="mb-3 text-accent" />
                   <h2 className="text-lg font-bold">{item.title}</h2>
                   <p className="mt-2 text-sm leading-relaxed text-muted">{item.description}</p>
                 </div>

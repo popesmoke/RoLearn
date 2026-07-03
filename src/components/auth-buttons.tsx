@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import { Icon8, icons } from "@/components/icon8";
+import { AppIcon } from "@/components/icons";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -57,7 +57,7 @@ export function AuthButtons({ compact = false }: AuthButtonsProps) {
         onClick={() => setShowLogin(true)}
         className="gap-2"
       >
-        <Icon8 name={icons.login} size={18} />
+        <AppIcon name="login" size={18} />
         {compact ? "Sign in" : "Sign in with Roblox"}
       </Button>
       {showLogin ? <LoginModal onClose={() => setShowLogin(false)} /> : null}
@@ -90,7 +90,7 @@ export function MarketingAuthButtons() {
     <>
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button onClick={() => setShowLogin(true)} className="gap-2">
-          <Icon8 name={icons.login} size={20} />
+          <AppIcon name="login" size={20} />
           Get started free
         </Button>
         <ButtonLink href="/explore" variant="outline">
@@ -192,12 +192,12 @@ function LoginModal({ onClose }: LoginModalProps) {
           className="absolute right-4 top-4 rounded-lg p-1 transition hover:bg-surface-hover"
           aria-label="Close"
         >
-          <Icon8 name={icons.close} size={20} />
+          <AppIcon name="close" size={20} />
         </button>
 
         <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15">
-            <Icon8 name={icons.game} size={28} />
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15 text-accent">
+            <AppIcon name="game" size={28} />
           </div>
           <div>
             <h2 className="text-lg font-bold">Sign in with Roblox</h2>
@@ -236,10 +236,10 @@ function LoginModal({ onClose }: LoginModalProps) {
               <button
                 type="button"
                 onClick={copyCode}
-                className="rounded-lg p-2 transition hover:bg-surface-hover"
+                className="rounded-lg p-2 transition hover:bg-surface-hover text-muted"
                 title="Copy code"
               >
-                <Icon8 name={icons.copy} size={20} />
+                <AppIcon name="copy" size={20} />
               </button>
             </div>
             {copied ? <p className="text-center text-xs text-emerald-400">Copied!</p> : null}

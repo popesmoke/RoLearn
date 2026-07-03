@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon8, icons } from "@/components/icon8";
+import { AppIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sendMessage } from "@/app/actions/interactions";
@@ -37,7 +37,7 @@ export function MessageForm({ conversationId }: MessageFormProps) {
         disabled={loading}
       />
       <Button type="submit" disabled={loading || !content.trim()} size="icon">
-        <Icon8 name={icons.send} size={20} />
+        <AppIcon name="send" size={20} />
       </Button>
     </form>
   );

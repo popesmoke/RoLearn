@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Icon8, icons } from "@/components/icon8";
+import { AppIcon } from "@/components/icons";
 import { skillCategories } from "@/lib/constants";
 import { formatCategory } from "@/lib/utils";
 import { getDisplayName, getHandle, profilePath } from "@/lib/user-display";
@@ -113,8 +113,8 @@ export default async function SearchPage({ searchParams }: PageProps) {
         <form className="space-y-3">
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Icon8
-                name={icons.search}
+              <AppIcon
+                name="search"
                 size={18}
                 className="absolute left-3 top-1/2 -translate-y-1/2 opacity-50"
               />
@@ -167,7 +167,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
       <div className="p-4">
         {!hasResults ? (
           <div className="surface-panel px-4 py-16 text-center">
-            <Icon8 name={icons.search} size={48} className="mx-auto mb-4 opacity-50" />
+            <AppIcon name="search" size={48} className="mx-auto mb-4 opacity-50" />
             <p className="text-lg font-bold">No results found</p>
             <p className="mt-2 text-muted">Try different keywords or filters.</p>
           </div>

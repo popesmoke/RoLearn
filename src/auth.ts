@@ -30,9 +30,12 @@ export const authOptions: NextAuthOptions = {
 
         if (!username || !code) return null;
 
+        const robloxUser = await lookupRobloxUser(username);
+        if (!robloxUser) return null;
+
         const challenge = await prisma.verificationChallenge.findFirst({
           where: {
-            robloxUsername: username,
+            robloxUsername: { equals: robloxUser.name, mode: "insensitive" },
             code,
             expiresAt: { gt: new Date() },
           },
@@ -40,9 +43,6 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!challenge) return null;
-
-        const robloxUser = await lookupRobloxUser(username);
-        if (!robloxUser) return null;
 
         const profile = await getRobloxUserProfile(String(robloxUser.id));
         if (!profile || !bioContainsCode(profile.description, code)) {
@@ -76,7 +76,9 @@ export const authOptions: NextAuthOptions = {
         });
 
         await prisma.verificationChallenge.deleteMany({
-          where: { robloxUsername: username },
+          where: {
+            robloxUsername: { equals: robloxUser.name, mode: "insensitive" },
+          },
         });
 
         return {

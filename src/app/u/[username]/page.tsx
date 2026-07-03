@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ContactButton } from "@/components/contact-button";
 import { FeedItem } from "@/components/feed/feed-item";
-import { Icon8, icons } from "@/components/icon8";
+import { AppIcon } from "@/components/icons";
 import { formatCategory, trustLevelStyles } from "@/lib/utils";
 import { getDisplayName, getHandle } from "@/lib/user-display";
 
@@ -19,8 +19,13 @@ type PageProps = {
 export default async function ProfilePage({ params }: PageProps) {
   const { username } = await params;
 
-  const user = await prisma.user.findUnique({
-    where: { username: username.toLowerCase() },
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { username: { equals: username, mode: "insensitive" } },
+        { robloxUsername: { equals: username, mode: "insensitive" } },
+      ],
+    },
     include: {
       skills: { orderBy: { category: "asc" } },
       portfolioItems: { orderBy: { createdAt: "desc" }, take: 6 },
@@ -68,7 +73,7 @@ export default async function ProfilePage({ params }: PageProps) {
                   <div className="flex items-center gap-2">
                     <h1 className="text-2xl font-bold">{displayName}</h1>
                     {user.isVerified ? (
-                      <Icon8 name={icons.verified} size={22} alt="Verified" />
+                      <AppIcon name="verified" size={22} />
                     ) : null}
                   </div>
                   <p className="text-muted">@{handle}</p>

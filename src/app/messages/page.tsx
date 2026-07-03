@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { AppShell } from "@/components/layout/app-shell";
 import { Avatar } from "@/components/ui/avatar";
-import { Icon8, icons } from "@/components/icon8";
+import { AppIcon } from "@/components/icons";
 import { timeAgo } from "@/lib/utils";
 import { getDisplayName } from "@/lib/user-display";
 
@@ -46,7 +46,7 @@ export default async function MessagesPage() {
       <div className="p-4">
         {participations.length === 0 ? (
           <div className="surface-panel px-4 py-16 text-center">
-            <Icon8 name={icons.messages} size={48} className="mx-auto mb-4 opacity-50" />
+            <AppIcon name="messages" size={48} className="mx-auto mb-4 opacity-50" />
             <p className="text-lg font-bold">No conversations yet</p>
             <p className="mt-2 text-muted">
               Message someone from their profile or a listing.

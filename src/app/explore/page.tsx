@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/app-shell";
 import { FeedItem } from "@/components/feed/feed-item";
 import { ButtonLink } from "@/components/ui/button";
-import { Icon8, icons } from "@/components/icon8";
+import { AppIcon, type IconName } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ type FeedEntry = {
   budgetMax?: number | null;
   author: {
     id: string;
-    username: string;
+    username: string | null;
     robloxUsername: string | null;
     displayName: string | null;
     email: string;
@@ -95,7 +95,7 @@ export default async function ExplorePage() {
       subtitle="Services, jobs, and team posts from Roblox creators"
       headerAction={
         <ButtonLink href="/dashboard" size="sm" className="gap-1.5">
-          <Icon8 name={icons.plus} size={16} />
+          <AppIcon name="plus" size={16} />
           Post
         </ButtonLink>
       }
@@ -103,7 +103,7 @@ export default async function ExplorePage() {
       <div className="feed-grid">
         {feed.length === 0 ? (
           <div className="surface-panel px-4 py-16 text-center">
-            <Icon8 name={icons.rocket} size={48} className="mx-auto mb-4 opacity-60" />
+            <AppIcon name="rocket" size={48} className="mx-auto mb-4 opacity-60" />
             <p className="text-lg font-bold">Nothing here yet</p>
             <p className="mt-2 text-muted">
               Be the first to publish a service, job, or team request.

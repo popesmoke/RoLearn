@@ -4,18 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { Icon8, icons } from "@/components/icon8";
+import { AppIcon, type IconName } from "@/components/icons";
 import { ButtonLink } from "@/components/ui/button";
 import { AuthButtons } from "@/components/auth-buttons";
 import { getHandle, profilePath } from "@/lib/user-display";
 
-const navItems = [
-  { href: "/explore", label: "Discover", icon: icons.home },
-  { href: "/search", label: "Search", icon: icons.search },
-  { href: "/marketplace", label: "Market", icon: icons.marketplace },
-  { href: "/teamfinder", label: "Teams", icon: icons.teams },
-  { href: "/messages", label: "Messages", icon: icons.messages },
-  { href: "/dashboard", label: "Studio", icon: icons.studio },
+const navItems: { href: string; label: string; icon: IconName }[] = [
+  { href: "/explore", label: "Discover", icon: "home" },
+  { href: "/search", label: "Search", icon: "search" },
+  { href: "/marketplace", label: "Market", icon: "marketplace" },
+  { href: "/teamfinder", label: "Teams", icon: "teams" },
+  { href: "/messages", label: "Messages", icon: "messages" },
+  { href: "/dashboard", label: "Studio", icon: "studio" },
 ];
 
 type SidebarProps = {
@@ -53,7 +53,7 @@ export function Sidebar({ user }: SidebarProps) {
                   : "font-medium text-muted hover:bg-surface-hover hover:text-foreground",
               )}
             >
-              <Icon8 name={item.icon} size={22} />
+              <AppIcon name={item.icon} size={22} />
               <span className="hidden xl:inline">{item.label}</span>
             </Link>
           );
@@ -69,7 +69,7 @@ export function Sidebar({ user }: SidebarProps) {
                 : "font-medium text-muted hover:bg-surface-hover hover:text-foreground",
             )}
           >
-            <Icon8 name={icons.user} size={22} />
+            <AppIcon name="user" size={22} />
             <span className="hidden truncate xl:inline">
               @{getHandle(user)}
             </span>
@@ -79,7 +79,7 @@ export function Sidebar({ user }: SidebarProps) {
 
       <div className="mt-auto space-y-3 px-1 pb-2">
         <ButtonLink href="/dashboard" className="hidden w-full xl:flex" size="sm">
-          <Icon8 name={icons.plus} size={16} />
+          <AppIcon name="plus" size={16} />
           Create
         </ButtonLink>
         <AuthButtons compact />
