@@ -9,11 +9,23 @@ Vercel Hobby can feel slow on cold starts. These options are faster and work gre
 | Platform | Speed | Setup |
 |---|---|---|
 | **[Railway](https://railway.app)** | Fast, always-on | Connect GitHub → uses `Dockerfile` |
-| **[Render](https://render.com)** | Fast, free tier | Docker or Node web service |
+| **[Render](https://render.com)** | Fast, free tier | **Web Service** (full app, not Static Site) |
 | **[Cloudflare Pages](https://pages.cloudflare.com)** | Global edge | Next.js via OpenNext adapter |
 | Vercel | Good, cold starts on free | GitHub integration (default) |
 
 **Recommended production stack:** Railway or Render + Neon PostgreSQL + Cloudflare R2
+
+### Render is not backend-only
+
+Render has different service types. RoLearn needs a **Web Service** — that runs the whole Next.js app:
+
+- Pages (`/`, `/explore`, `/compose`, …)
+- API routes (`/api/feed`, `/api/upload`, live SSE stream)
+- Server actions and auth
+
+Do **not** pick **Static Site** on Render. That is frontend-only (HTML/CSS/JS files) and cannot run RoLearn’s server code, uploads, or live feed.
+
+On Render: **New → Web Service** → connect GitHub → Docker (uses repo `Dockerfile`) or Node with `npm run build` + `npm start`.
 
 R2 is required for photos/videos in production (any host):
 1. [dash.cloudflare.com](https://dash.cloudflare.com) → R2 → Create bucket `rolearn-uploads`
@@ -122,7 +134,28 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 5) Deploy to Vercel (free)
+## 5) Deploy to Railway or Render (recommended)
+
+Both host the **entire** RoLearn app — UI and backend together.
+
+### Railway (easiest)
+
+1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub**
+2. Select the RoLearn repo (uses `Dockerfile` automatically)
+3. Add env vars: `DATABASE_URL`, `AUTH_SECRET`, `NEXTAUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, `NEXTAUTH_URL`, plus R2 vars for media
+4. Deploy → copy the public URL → set `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` to that URL
+
+### Render (Web Service)
+
+1. [render.com](https://render.com) → **New +** → **Web Service** (not Static Site)
+2. Connect GitHub repo
+3. **Environment:** Docker *or* Node with build `npm install && npm run build`, start `npm start`
+4. Add the same env vars as above
+5. Free tier spins down after ~15 min idle (first visit may be slow); paid tier stays warm
+
+---
+
+## 6) Deploy to Vercel (alternative)
 
 1. Push your repo to GitHub
 2. Go to [vercel.com/dashboard](https://vercel.com/dashboard)
@@ -145,7 +178,7 @@ Vercel auto-redeploys on every `git push` to main.
 
 ---
 
-## 6) GitHub workflow
+## 7) GitHub workflow
 
 ```bash
 git add .
@@ -157,7 +190,7 @@ CI runs lint + build on every push. Vercel deploys automatically.
 
 ---
 
-## 7) What you get for $0
+## 8) What you get for $0
 
 - Roblox-verified creator accounts
 - Public profiles at `/u/username`
