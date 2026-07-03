@@ -58,13 +58,28 @@ export async function getRobloxAvatarUrl(userId: string): Promise<string | null>
   return data.data[0]?.imageUrl ?? null;
 }
 
+const VERIFY_WORDS = [
+  "jazz", "turtle", "maple", "canoe", "coral", "breeze", "mango", "pixel",
+  "nova", "lunar", "cedar", "spark", "velvet", "otter", "comet", "drift",
+  "ember", "frost", "grove", "harbor", "ivy", "jade", "kite", "lemon",
+  "moss", "nimbus", "olive", "prism", "quill", "ripple", "sage", "tango",
+  "vista", "willow", "zephyr", "acorn", "bamboo", "canyon", "dolphin",
+  "eagle", "flamingo", "galaxy", "horizon", "island", "jungle", "koala",
+  "meadow", "nebula", "ocean", "panda", "quartz", "river", "sunset",
+] as const;
+
+function pickWord(used: Set<string>): string {
+  const available = VERIFY_WORDS.filter((word) => !used.has(word));
+  const pool = available.length > 0 ? available : [...VERIFY_WORDS];
+  const word = pool[Math.floor(Math.random() * pool.length)];
+  used.add(word);
+  return word;
+}
+
 export function generateVerificationCode(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let suffix = "";
-  for (let i = 0; i < 6; i++) {
-    suffix += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return `RL-VERIFY-${suffix}`;
+  const used = new Set<string>();
+  const words = [pickWord(used), pickWord(used), pickWord(used)];
+  return `RL ${words.join(" ")}`;
 }
 
 export function bioContainsCode(bio: string, code: string): boolean {

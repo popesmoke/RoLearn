@@ -84,7 +84,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. Click **Sign in with Roblox**
 2. Enter your Roblox username
-3. Copy the generated code (e.g. `RL-VERIFY-A7X9K2`)
+3. Copy the generated phrase (e.g. `RL jazz turtle`)
 4. Set your Roblox profile bio to **only** that code
 5. Click **Verify** — RoLearn checks your bio via the Roblox API
 6. Change your bio back anytime after signing in
@@ -143,7 +143,7 @@ CI runs lint + build on every push. Vercel deploys automatically.
 ## 8) Troubleshooting
 
 **"Verification failed"**
-- Bio must contain **exactly** the code — no extra text, spaces, or emojis
+- Bio must contain **exactly** the phrase — no extra text, spaces, or emojis
 - Wait a few seconds after saving your Roblox bio before clicking Verify
 - Codes expire after 15 minutes — generate a new one if needed
 

@@ -158,7 +158,7 @@ function LoginModal({ onClose }: LoginModalProps) {
 
       if (result?.error) {
         setError(
-          "Verification failed. Make sure your Roblox bio is exactly the code (nothing else), then try again.",
+          "Verification failed. Make sure your Roblox bio is exactly the phrase (nothing else), then try again.",
         );
         return;
       }
@@ -226,11 +226,11 @@ function LoginModal({ onClose }: LoginModalProps) {
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-muted">
-              Hi <span className="font-semibold text-foreground">{displayName}</span>! Add this code to your Roblox bio:
+              Hi <span className="font-semibold text-foreground">{displayName}</span>! Add this phrase to your Roblox bio:
             </p>
 
             <div className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 p-4">
-              <code className="flex-1 text-center text-lg font-bold tracking-widest text-accent">
+              <code className="flex-1 text-center text-base font-bold text-accent sm:text-lg">
                 {code}
               </code>
               <button
@@ -251,7 +251,7 @@ function LoginModal({ onClose }: LoginModalProps) {
               </li>
               <li className="flex gap-2">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent">2</span>
-                Set your bio to <strong className="text-foreground">only</strong> the code above
+                Set your bio to <strong className="text-foreground">only</strong> that phrase (e.g. RL jazz turtle)
               </li>
               <li className="flex gap-2">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent">3</span>
