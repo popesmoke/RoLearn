@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "RoLearn — Professional network for Roblox creators",
   description:
     "The developer network for Roblox creators. Publish work, find gigs, recruit teams, and build reputation.",
-  icons: { icon: "/logo.svg" },
+  icons: { icon: "/logo.png" },
 };
 
 export default function RootLayout({

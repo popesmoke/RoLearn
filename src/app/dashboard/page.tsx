@@ -5,7 +5,7 @@ import { skillCategories } from "@/lib/constants";
 import { AppShell } from "@/components/layout/app-shell";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -245,7 +245,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         ) : null}
 
         {tab === "market" ? (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-4">
+            <div className="surface-panel flex flex-wrap items-center justify-between gap-3 p-4">
+              <p className="text-sm text-muted">
+                Create posts with photos, videos, and a guided editor on the compose page.
+              </p>
+              <ButtonLink href="/compose" size="sm" className="gap-1.5">
+                <AppIcon name="compose" size={16} />
+                Create post
+              </ButtonLink>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <h3 className="font-bold">Offer a service</h3>
@@ -290,10 +300,21 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </CardBody>
             </Card>
           </div>
+          </div>
         ) : null}
 
         {tab === "recruit" ? (
-          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-4">
+            <div className="surface-panel flex flex-wrap items-center justify-between gap-3 p-4">
+              <p className="text-sm text-muted">
+                Recruit with media attachments using the compose flow.
+              </p>
+              <ButtonLink href="/compose" size="sm" className="gap-1.5">
+                <AppIcon name="compose" size={16} />
+                Create post
+              </ButtonLink>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
             <Card>
               <CardHeader>
                 <h3 className="font-bold">Recruit for your team</h3>
@@ -328,6 +349,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 )}
               </CardBody>
             </Card>
+          </div>
           </div>
         ) : null}
       </div>

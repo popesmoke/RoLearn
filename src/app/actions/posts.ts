@@ -111,8 +111,45 @@ export async function toggleLike(listingType: ListingType, listingId: string) {
     await prisma.postLike.create({
       data: { userId: user.id, listingType, listingId },
     });
+
+    const ownerId = await getListingOwnerId(listingType, listingId);
+    if (ownerId && ownerId !== user.id) {
+      await prisma.notification.create({
+        data: {
+          userId: ownerId,
+          type: "like",
+          title: "New like",
+          body: "Someone liked your post",
+          link: "/explore",
+        },
+      });
+    }
   }
 
   revalidatePath("/explore");
+  revalidatePath("/marketplace");
+  revalidatePath("/teamfinder");
   return { liked: !existing };
+}
+
+async function getListingOwnerId(listingType: ListingType, listingId: string) {
+  if (listingType === "SERVICE") {
+    const row = await prisma.serviceOffer.findUnique({
+      where: { id: listingId },
+      select: { userId: true },
+    });
+    return row?.userId ?? null;
+  }
+  if (listingType === "JOB") {
+    const row = await prisma.jobPost.findUnique({
+      where: { id: listingId },
+      select: { authorId: true },
+    });
+    return row?.authorId ?? null;
+  }
+  const row = await prisma.teamPost.findUnique({
+    where: { id: listingId },
+    select: { authorId: true },
+  });
+  return row?.authorId ?? null;
 }

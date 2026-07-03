@@ -36,7 +36,7 @@ export function Sidebar({ user, unreadCount = 0 }: SidebarProps) {
   return (
     <aside className="sticky top-0 hidden h-screen flex-col border-r border-border bg-surface px-3 py-4 lg:flex">
       <Link href="/" className="mb-6 flex items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-surface-hover">
-        <Image src="/logo.svg" alt="RoLearn" width={36} height={36} className="rounded-xl" />
+        <Image src="/logo.png" alt="RoLearn" width={40} height={40} className="rounded-xl" />
         <span className="text-lg font-bold tracking-tight">
           Ro<span className="text-accent">Learn</span>
         </span>

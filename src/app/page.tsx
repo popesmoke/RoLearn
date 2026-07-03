@@ -31,7 +31,7 @@ export default function Home() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.svg" alt="RoLearn" width={36} height={36} className="rounded-xl" />
+            <Image src="/logo.png" alt="RoLearn" width={44} height={44} className="rounded-xl" />
             <span className="text-lg font-bold tracking-tight">
               Ro<span className="text-accent">Learn</span>
             </span>

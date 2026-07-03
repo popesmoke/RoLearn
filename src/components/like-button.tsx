@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LoginModal } from "@/components/auth-buttons";
 import { toggleLike } from "@/app/actions/posts";
 import { ListingType } from "@prisma/client";
+import { cn } from "@/lib/utils";
 
 type LikeButtonProps = {
   listingType: ListingType;
@@ -45,9 +46,13 @@ export function LikeButton({
         size="sm"
         variant="ghost"
         onClick={handleLike}
-        className={`gap-1.5 ${liked ? "text-accent" : ""}`}
+        className={cn("gap-1.5 transition-colors", liked && "text-red-500 hover:text-red-400")}
       >
-        <Icon8 name="like" size={16} />
+        <Icon8
+          name="like"
+          size={16}
+          className={cn("transition-colors", liked && "text-red-500")}
+        />
         {count > 0 ? count : "Like"}
       </Button>
       {showLogin ? <LoginModal onClose={() => setShowLogin(false)} /> : null}

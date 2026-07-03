@@ -9,6 +9,7 @@ import { LoginModal } from "@/components/auth-buttons";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MediaUploader } from "@/components/media-uploader";
+import { cn } from "@/lib/utils";
 
 const types = [
   { id: "service", label: "Service", icon: "briefcase" as const },
@@ -33,9 +34,22 @@ export function QuickCompose() {
       return;
     }
 
+    const formData = new FormData(e.currentTarget);
+    const title = String(formData.get("title") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
+
+    if (!title) {
+      setError("Add a headline.");
+      return;
+    }
+    if (!description) {
+      setError("Add a description before posting.");
+      setExpanded(true);
+      return;
+    }
+
     setError("");
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
     formData.set("type", type);
     formData.set("mediaUrls", JSON.stringify(mediaUrls));
 
@@ -47,7 +61,7 @@ export function QuickCompose() {
       }
       setMediaUrls([]);
       setExpanded(false);
-      (e.target as HTMLFormElement).reset();
+      e.currentTarget.reset();
       router.refresh();
     } catch {
       setError("Could not publish. Try again.");
@@ -65,11 +79,12 @@ export function QuickCompose() {
               key={item.id}
               type="button"
               onClick={() => setType(item.id)}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition ${
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition",
                 type === item.id
                   ? "bg-accent/15 text-accent"
-                  : "bg-surface-elevated text-muted hover:text-foreground"
-              }`}
+                  : "bg-surface-elevated text-muted hover:text-foreground",
+              )}
             >
               <Icon8 name={item.icon} size={16} />
               {item.label}
@@ -79,23 +94,19 @@ export function QuickCompose() {
 
         <input
           name="title"
-          required
           placeholder="What's the headline?"
           className="w-full rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-[15px] outline-none transition focus:border-accent"
           onFocus={() => setExpanded(true)}
         />
 
-        {expanded ? (
-          <>
-            <Textarea
-              name="description"
-              required
-              rows={3}
-              placeholder="Add details — what you're offering, hiring for, or building…"
-            />
-            <MediaUploader urls={mediaUrls} onChange={setMediaUrls} max={4} />
-          </>
-        ) : null}
+        <div className={cn("space-y-3", !expanded && "hidden")}>
+          <Textarea
+            name="description"
+            rows={3}
+            placeholder="Add details — what you're offering, hiring for, or building…"
+          />
+          <MediaUploader urls={mediaUrls} onChange={setMediaUrls} max={4} />
+        </div>
 
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
 

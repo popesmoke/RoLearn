@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FeedItem, type FeedAuthor } from "@/components/feed/feed-item";
 import { Icon8 } from "@/components/icons";
 import { ButtonLink } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type SerializedFeedEntry = {
   id: string;
@@ -28,6 +29,15 @@ type LiveFeedProps = {
 const FALLBACK_POLL_MS = 4000;
 const MAX_ITEMS = 80;
 
+const filters = [
+  { id: "all", label: "All" },
+  { id: "service", label: "Services" },
+  { id: "job", label: "Jobs" },
+  { id: "team", label: "Teams" },
+] as const;
+
+type FilterId = (typeof filters)[number]["id"];
+
 function mergeItems(prev: SerializedFeedEntry[], incoming: SerializedFeedEntry[]) {
   const seen = new Set(prev.map((p) => `${p.type}-${p.id}`));
   const fresh = incoming.filter((i) => !seen.has(`${i.type}-${i.id}`));
@@ -39,6 +49,7 @@ function mergeItems(prev: SerializedFeedEntry[], incoming: SerializedFeedEntry[]
 
 export function LiveFeed({ initialItems }: LiveFeedProps) {
   const [items, setItems] = useState(initialItems);
+  const [filter, setFilter] = useState<FilterId>("all");
   const [live, setLive] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const newestRef = useRef(
@@ -125,6 +136,9 @@ export function LiveFeed({ initialItems }: LiveFeedProps) {
     };
   }, [applyIncoming]);
 
+  const visibleItems =
+    filter === "all" ? items : items.filter((item) => item.type === filter);
+
   if (items.length === 0) {
     return (
       <div className="surface-panel px-4 py-16 text-center">
@@ -141,7 +155,7 @@ export function LiveFeed({ initialItems }: LiveFeedProps) {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-border px-4 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2">
         <div className="flex items-center gap-2 text-sm">
           <span className={`live-dot ${live ? "live-dot-active" : ""}`} />
           <span className="font-medium text-muted">
@@ -158,26 +172,50 @@ export function LiveFeed({ initialItems }: LiveFeedProps) {
         </button>
       </div>
 
-      <div className="feed-grid">
-        {items.map((item) => (
-          <FeedItem
-            key={`${item.type}-${item.id}`}
-            id={item.id}
-            type={item.type}
-            title={item.title}
-            description={item.description}
-            author={item.author}
-            createdAt={new Date(item.createdAt)}
-            category={item.category}
-            price={item.price}
-            budgetMin={item.budgetMin}
-            budgetMax={item.budgetMax}
-            mediaUrls={item.mediaUrls}
-            likeCount={item.likeCount}
-            likedByMe={item.likedByMe}
-          />
+      <div className="flex gap-1 border-b border-border px-4 py-2">
+        {filters.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => setFilter(f.id)}
+            className={cn(
+              "rounded-full px-3 py-1 text-sm font-medium transition",
+              filter === f.id
+                ? "bg-accent/15 text-accent"
+                : "text-muted hover:bg-surface-hover hover:text-foreground",
+            )}
+          >
+            {f.label}
+          </button>
         ))}
       </div>
+
+      {visibleItems.length === 0 ? (
+        <div className="px-4 py-12 text-center text-sm text-muted">
+          No {filter === "all" ? "posts" : `${filter} posts`} yet.
+        </div>
+      ) : (
+        <div className="feed-grid">
+          {visibleItems.map((item) => (
+            <FeedItem
+              key={`${item.type}-${item.id}`}
+              id={item.id}
+              type={item.type}
+              title={item.title}
+              description={item.description}
+              author={item.author}
+              createdAt={new Date(item.createdAt)}
+              category={item.category}
+              price={item.price}
+              budgetMin={item.budgetMin}
+              budgetMax={item.budgetMax}
+              mediaUrls={item.mediaUrls}
+              likeCount={item.likeCount}
+              likedByMe={item.likedByMe}
+            />
+          ))}
+        </div>
+      )}
     </>
   );
 }
