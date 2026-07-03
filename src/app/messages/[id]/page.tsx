@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
@@ -96,7 +97,25 @@ export default async function ConversationPage({ params }: PageProps) {
                         : "bg-surface-elevated border border-border"
                     }`}
                   >
-                    <p className="text-sm leading-relaxed">{msg.content}</p>
+                    {msg.mediaUrl ? (
+                      <div className="mb-2 overflow-hidden rounded-xl">
+                        {msg.mediaType === "video" ? (
+                          <video src={msg.mediaUrl} controls className="max-h-64 w-full rounded-lg" />
+                        ) : (
+                          <Image
+                            src={msg.mediaUrl}
+                            alt="Attachment"
+                            width={400}
+                            height={300}
+                            className="max-h-64 w-full rounded-lg object-cover"
+                            unoptimized
+                          />
+                        )}
+                      </div>
+                    ) : null}
+                    {msg.content ? (
+                      <p className="text-sm leading-relaxed">{msg.content}</p>
+                    ) : null}
                     <p className={`mt-1 text-[10px] ${isMine ? "text-white/70" : "text-subtle"}`}>
                       {timeAgo(msg.createdAt)}
                     </p>

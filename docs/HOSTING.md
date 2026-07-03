@@ -1,16 +1,47 @@
 # RoLearn — Free Hosting & Setup Guide
 
-Run RoLearn completely free using Roblox bio verification, Vercel hosting, and a free PostgreSQL database.
+Run RoLearn completely free using Roblox bio verification, free PostgreSQL, and free media storage.
+
+## Recommended hosting (faster than Vercel Hobby)
+
+Vercel Hobby can feel slow on cold starts. These options are faster and work great with RoLearn:
+
+| Platform | Speed | Setup |
+|---|---|---|
+| **[Railway](https://railway.app)** | Fast, always-on | Connect GitHub → uses `Dockerfile` |
+| **[Render](https://render.com)** | Fast, free tier | Docker or Node web service |
+| **[Cloudflare Pages](https://pages.cloudflare.com)** | Global edge | Next.js via OpenNext adapter |
+| Vercel | Good, cold starts on free | GitHub integration (default) |
+
+**Recommended production stack:** Railway or Render + Neon PostgreSQL + Cloudflare R2
+
+R2 is required for photos/videos in production (any host):
+1. [dash.cloudflare.com](https://dash.cloudflare.com) → R2 → Create bucket `rolearn-uploads`
+2. Enable public access or attach a custom domain
+3. Create API token with Object Read & Write
+4. Add to env:
+
+```env
+R2_ACCOUNT_ID="your-account-id"
+R2_ACCESS_KEY_ID="..."
+R2_SECRET_ACCESS_KEY="..."
+R2_BUCKET_NAME="rolearn-uploads"
+R2_PUBLIC_URL="https://pub-xxxx.r2.dev"
+```
+
+---
 
 ## Free stack
 
 | Service | Use | Free tier |
 |---|---|---|
-| [Vercel](https://vercel.com) | Next.js hosting + API routes | Hobby plan |
+| [Railway](https://railway.app) / [Render](https://render.com) | Fast Next.js hosting (Docker) | Free tiers available |
 | [Neon](https://neon.tech) | PostgreSQL database | 512 MB storage |
+| [Cloudflare R2](https://www.cloudflare.com/products/r2/) | Photos & video uploads | 10 GB free |
 | [GitHub](https://github.com) | Code + auto-deploy | Free |
-| [Icons8](https://icons8.com) | UI icons (loaded via CDN) | Free with attribution |
+| [Icons8](https://icons8.com/icons/all) | UI icons (CDN, themed) | Free with attribution |
 | [Roblox API](https://create.roblox.com/docs) | Account verification | Free, no API key needed |
+| [Vercel](https://vercel.com) | Alternative Next.js host | Hobby plan |
 
 Optional later (still free tiers available):
 

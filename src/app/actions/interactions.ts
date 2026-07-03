@@ -5,6 +5,34 @@ import { ListingType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 
+async function notify(userId: string, type: string, title: string, body?: string, link?: string) {
+  await prisma.notification.create({
+    data: { userId, type, title, body, link },
+  });
+}
+
+async function getListingOwner(listingType: ListingType, listingId: string) {
+  if (listingType === "SERVICE") {
+    const row = await prisma.serviceOffer.findUnique({
+      where: { id: listingId },
+      select: { userId: true, title: true },
+    });
+    return row ? { ownerId: row.userId, title: row.title } : null;
+  }
+  if (listingType === "JOB") {
+    const row = await prisma.jobPost.findUnique({
+      where: { id: listingId },
+      select: { authorId: true, title: true },
+    });
+    return row ? { ownerId: row.authorId, title: row.title } : null;
+  }
+  const row = await prisma.teamPost.findUnique({
+    where: { id: listingId },
+    select: { authorId: true, title: true },
+  });
+  return row ? { ownerId: row.authorId, title: row.title } : null;
+}
+
 export async function applyToListing(listingType: ListingType, listingId: string) {
   const user = await requireUser();
 
@@ -29,6 +57,19 @@ export async function applyToListing(listingType: ListingType, listingId: string
       listingId,
     },
   });
+
+  const listing = await getListingOwner(listingType, listingId);
+  if (listing && listing.ownerId !== user.id) {
+    const label =
+      listingType === "JOB" ? "applied to your job" : listingType === "TEAM" ? "wants to join your team" : "wants to hire you";
+    await notify(
+      listing.ownerId,
+      "application",
+      "New application",
+      `Someone ${label}: ${listing.title}`,
+      "/notifications",
+    );
+  }
 
   revalidatePath("/explore");
   revalidatePath("/marketplace");
@@ -69,16 +110,28 @@ export async function startConversation(otherUserId: string) {
   return { conversationId: conversation.id };
 }
 
-export async function sendMessage(conversationId: string, content: string) {
+export async function sendMessage(
+  conversationId: string,
+  content: string,
+  mediaUrl?: string | null,
+  mediaType?: string | null,
+) {
   const user = await requireUser();
   const trimmed = content.trim();
-  if (!trimmed) return { error: "Empty message" };
+  if (!trimmed && !mediaUrl) return { error: "Empty message" };
 
   const participant = await prisma.conversationParticipant.findUnique({
     where: {
       conversationId_userId: {
         conversationId,
         userId: user.id,
+      },
+    },
+    include: {
+      conversation: {
+        include: {
+          participants: { where: { userId: { not: user.id } }, select: { userId: true } },
+        },
       },
     },
   });
@@ -91,7 +144,9 @@ export async function sendMessage(conversationId: string, content: string) {
     data: {
       conversationId,
       senderId: user.id,
-      content: trimmed,
+      content: trimmed || (mediaType === "video" ? "Sent a video" : "Sent a photo"),
+      mediaUrl: mediaUrl ?? undefined,
+      mediaType: mediaType ?? undefined,
     },
   });
 
@@ -100,7 +155,27 @@ export async function sendMessage(conversationId: string, content: string) {
     data: { updatedAt: new Date() },
   });
 
+  const recipientId = participant.conversation.participants[0]?.userId;
+  if (recipientId) {
+    await notify(
+      recipientId,
+      "message",
+      "New message",
+      trimmed.slice(0, 120) || "Sent media",
+      `/messages/${conversationId}`,
+    );
+  }
+
   revalidatePath(`/messages/${conversationId}`);
   revalidatePath("/messages");
   return { success: true };
+}
+
+export async function markNotificationsRead() {
+  const user = await requireUser();
+  await prisma.notification.updateMany({
+    where: { userId: user.id, readAt: null },
+    data: { readAt: new Date() },
+  });
+  revalidatePath("/notifications");
 }

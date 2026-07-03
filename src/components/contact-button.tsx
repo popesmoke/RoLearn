@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { AppIcon } from "@/components/icons";
+import { Icon8 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { LoginModal } from "@/components/auth-buttons";
 import { startConversation } from "@/app/actions/interactions";
@@ -36,7 +36,7 @@ export function ContactButton({ userId }: ContactButtonProps) {
   return (
     <>
       <Button size="sm" variant="outline" onClick={handleContact} disabled={loading} className="gap-1.5">
-        <AppIcon name="messages" size={16} />
+        <Icon8 name="messages" size={16} />
         {loading ? "Opening…" : "Message"}
       </Button>
       {showLogin ? <LoginModal onClose={() => setShowLogin(false)} /> : null}

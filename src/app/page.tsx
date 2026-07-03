@@ -31,7 +31,7 @@ export default function Home() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="RoLearn" width={36} height={36} className="rounded-xl" />
+            <Image src="/logo.svg" alt="RoLearn" width={36} height={36} className="rounded-xl" />
             <span className="text-lg font-bold tracking-tight">
               Ro<span className="text-accent">Learn</span>
             </span>
@@ -62,7 +62,7 @@ export default function Home() {
                 <MarketingAuthButtons />
               </div>
               <p className="mt-4 text-sm text-subtle">
-                Free forever · Roblox bio verification · Deploy free on Vercel
+                Free forever · Roblox bio verification · Fast global hosting
               </p>
             </div>
 
@@ -147,7 +147,15 @@ export default function Home() {
       <footer className="border-t border-border py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-sm text-subtle sm:flex-row sm:px-6">
           <p>© {new Date().getFullYear()} RoLearn</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <a
+              href="https://icons8.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground"
+            >
+              Icons by Icons8
+            </a>
             <a href="https://github.com/popesmoke/RoLearn" className="hover:text-foreground">
               GitHub
             </a>

@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import Image from "next/image";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ApplyButton } from "@/components/apply-button";
 import { ContactButton } from "@/components/contact-button";
+import { LikeButton } from "@/components/like-button";
 import { formatBudget, formatCategory, formatUsd, timeAgo } from "@/lib/utils";
 import { getDisplayName, getHandle, profilePath } from "@/lib/user-display";
 
@@ -26,6 +30,9 @@ type FeedItemProps = {
   price?: number | null;
   budgetMin?: number | null;
   budgetMax?: number | null;
+  mediaUrls?: string[];
+  likeCount?: number;
+  likedByMe?: boolean;
 };
 
 const typeLabels = {
@@ -40,6 +47,34 @@ const listingTypeMap = {
   team: "TEAM" as const,
 };
 
+function MediaGallery({ urls }: { urls: string[] }) {
+  if (urls.length === 0) return null;
+
+  return (
+    <div className={`mt-3 grid gap-2 ${urls.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+      {urls.slice(0, 4).map((url) => {
+        const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url);
+        return (
+          <div key={url} className="overflow-hidden rounded-xl border border-border bg-black/40">
+            {isVideo ? (
+              <video src={url} controls className="max-h-72 w-full object-cover" preload="metadata" />
+            ) : (
+              <Image
+                src={url}
+                alt="Post media"
+                width={600}
+                height={340}
+                className="max-h-72 w-full object-cover"
+                unoptimized
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function FeedItem({
   id,
   type,
@@ -51,6 +86,9 @@ export function FeedItem({
   price,
   budgetMin,
   budgetMax,
+  mediaUrls = [],
+  likeCount = 0,
+  likedByMe = false,
 }: FeedItemProps) {
   const meta = typeLabels[type];
   const handle = getHandle(author);
@@ -60,12 +98,7 @@ export function FeedItem({
     <article className="surface-panel p-4 transition hover:border-accent/30">
       <div className="flex gap-3">
         <Link href={profilePath(author)}>
-          <Avatar
-            src={author.avatarUrl}
-            name={author.displayName}
-            email={author.email}
-            size="md"
-          />
+          <Avatar src={author.avatarUrl} name={author.displayName} email={author.email} size="md" />
         </Link>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -78,7 +111,9 @@ export function FeedItem({
           </div>
 
           <h3 className="mt-2 text-[17px] font-bold leading-snug">{title}</h3>
-          <p className="mt-1.5 text-[15px] leading-relaxed text-muted line-clamp-3">{description}</p>
+          <p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-relaxed text-muted">{description}</p>
+
+          <MediaGallery urls={mediaUrls} />
 
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
             {category ? <Badge variant="secondary">{formatCategory(category)}</Badge> : null}
@@ -86,7 +121,9 @@ export function FeedItem({
               <span className="font-semibold text-accent">From {formatUsd(price)}</span>
             ) : null}
             {type === "job" ? (
-              <span className="font-semibold text-warning">{formatBudget(budgetMin ?? null, budgetMax ?? null)}</span>
+              <span className="font-semibold text-warning">
+                {formatBudget(budgetMin ?? null, budgetMax ?? null)}
+              </span>
             ) : null}
           </div>
 
@@ -94,9 +131,15 @@ export function FeedItem({
             <ApplyButton
               listingType={listingTypeMap[type]}
               listingId={id}
-              label={type === "job" ? "Apply" : type === "team" ? "Join team" : "Hire"}
+              label={type === "job" ? "Apply" : type === "team" ? "Join" : "Hire"}
             />
             {author.id ? <ContactButton userId={author.id} /> : null}
+            <LikeButton
+              listingType={listingTypeMap[type]}
+              listingId={id}
+              initialCount={likeCount}
+              initialLiked={likedByMe}
+            />
           </div>
         </div>
       </div>

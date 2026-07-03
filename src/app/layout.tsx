@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "RoLearn — Professional network for Roblox creators",
   description:
     "The developer network for Roblox creators. Publish work, find gigs, recruit teams, and build reputation.",
-  icons: { icon: "/logo.png" },
+  icons: { icon: "/logo.svg" },
 };
 
 export default function RootLayout({
@@ -30,6 +30,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preconnect" href="https://img.icons8.com" />
+        <link rel="dns-prefetch" href="https://img.icons8.com" />
+      </head>
       <body className="min-h-full flex flex-col">
         <AppSessionProvider>{children}</AppSessionProvider>
       </body>

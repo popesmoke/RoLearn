@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { AppIcon } from "@/components/icons";
+import { Icon8 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { LoginModal } from "@/components/auth-buttons";
 import { applyToListing } from "@/app/actions/interactions";
@@ -40,7 +40,7 @@ export function ApplyButton({ listingType, listingId, label = "Apply" }: ApplyBu
   if (status === "done") {
     return (
       <span className="inline-flex items-center gap-1.5 text-sm font-medium text-success">
-        <AppIcon name="verified" size={16} />
+        <Icon8 name="verified" size={16} />
         Applied
       </span>
     );
@@ -55,7 +55,7 @@ export function ApplyButton({ listingType, listingId, label = "Apply" }: ApplyBu
         disabled={status === "loading"}
         className="gap-1.5"
       >
-        <AppIcon name="apply" size={16} />
+        <Icon8 name="apply" size={16} />
         {status === "loading" ? "Applying…" : status === "error" ? "Try again" : label}
       </Button>
       {showLogin ? <LoginModal onClose={() => setShowLogin(false)} /> : null}
