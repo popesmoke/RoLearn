@@ -2,6 +2,7 @@ import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { deletePutPutFile, hasPutPutConfig, uploadToPutPut } from "@/lib/putput";
 
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
 const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -115,6 +116,10 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
   const key = `uploads/${randomUUID()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
+  if (hasPutPutConfig()) {
+    return uploadToPutPut(file, buffer, mediaType);
+  }
+
   if (hasR2Config()) {
     return uploadToR2(file, buffer, key, mediaType);
   }
@@ -125,7 +130,7 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
 
   if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "File uploads need storage. Set up Supabase Storage (free, no credit card) — see docs/HOSTING.md.",
+      "File uploads need storage. Set PUTPUT_TOKEN (free, no credit card) — see docs/HOSTING.md.",
     );
   }
 
@@ -166,7 +171,9 @@ export async function deleteMediaUrls(urls: string[]): Promise<void> {
 
   for (const url of urls) {
     try {
-      if (r2 && bucket && publicUrl) {
+      if (url.includes("putput.io")) {
+        await deletePutPutFile(url);
+      } else if (r2 && bucket && publicUrl) {
         const key = keyFromPublicUrl(url);
         if (key) {
           await r2.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));

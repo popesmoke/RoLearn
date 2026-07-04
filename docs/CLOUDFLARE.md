@@ -1,12 +1,10 @@
-# Cloudflare Setup for RoLearn (optional)
+# Cloudflare for RoLearn
 
-> **Don't have a credit card?** Skip this doc. Use **[Supabase Storage](./HOSTING.md#step-2--supabase-file-storage-10-min-no-credit-card)** instead — free, no card required. Cloudflare R2 asks for a payment method even on the free tier.
+> **Hosting:** RoLearn runs on **Cloudflare Workers** — see **[HOSTING.md](./HOSTING.md)** for the full deploy guide.
 
-Cloudflare is **optional**. You only need it if you want:
-- **R2** file storage (10 GB free, but credit card required)
-- **Custom domain DNS** (when you buy a domain later)
+This doc covers optional extras: custom domain DNS and direct R2 access (if you get a credit card later).
 
-For Vercel-only hosting with `your-app.vercel.app`, see **[HOSTING.md](./HOSTING.md)**.
+> **No credit card?** You don't need direct R2. Use **PutPut** for uploads (`PUTPUT_TOKEN` in HOSTING.md).
 
 ---
 

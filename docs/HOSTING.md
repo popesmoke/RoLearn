@@ -1,212 +1,136 @@
-# RoLearn — Deploy on Vercel (no domain needed)
+# RoLearn — Deploy on Cloudflare Workers (recommended)
 
-Run RoLearn for **$0/month** with just **Vercel + Neon**. You do **not** need to buy a domain — use the free `your-app.vercel.app` URL.
+Run RoLearn for **$0/month** with **Cloudflare Workers + Neon + PutPut**. No custom domain needed — use `rolearn.<your-subdomain>.workers.dev`.
 
 ---
 
-## What you need
+## Is Cloudflare the right choice?
 
-| Service | What it does | Credit card? |
+| | Cloudflare Workers | Vercel Hobby |
 |---|---|---|
-| **[Vercel](https://vercel.com)** | Hosts the website | No (Hobby plan) |
-| **[Neon](https://neon.tech)** | PostgreSQL database | No |
-| **[Supabase](https://supabase.com)** | File storage (images, PDFs) | **No** |
-| **[GitHub](https://github.com)** | Code + auto-deploy | No |
+| **Cold starts** | Fast (edge, always warm) | Slow (1–3s after idle) |
+| **Next.js support** | Via OpenNext adapter | Native |
+| **Free URL** | `*.workers.dev` | `*.vercel.app` |
+| **Credit card** | Not required (Workers free) | Not required |
+| **File uploads** | PutPut (no card) | PutPut / Supabase |
 
-You do **not** need Cloudflare or a custom domain to launch.
+**Verdict:** Moving to Cloudflare is a good decision for RoLearn — especially if Vercel felt slow. PutPut stores files on Cloudflare R2 behind the scenes, so uploads and hosting stay on the same network.
 
 ---
 
-## Architecture (minimal)
+## Architecture
 
 ```
-Users → https://your-app.vercel.app  (Vercel)
+Users → https://rolearn.yourname.workers.dev  (Cloudflare Workers)
               ↓
         Neon PostgreSQL  (database)
               ↓
-        Supabase Storage  (uploads — optional but recommended)
+        PutPut  (images, videos, PDFs — no credit card)
 ```
+
+| Service | Role |
+|---|---|
+| **Cloudflare Workers** | Hosts the Next.js app |
+| **Neon** | PostgreSQL database |
+| **PutPut** | File storage (free, no card) |
+| **GitHub** | Code + auto-deploy via Workers Builds |
 
 ---
 
-## Step 1 — Neon database (5 min)
+## Step 1 — Neon database
 
-1. Go to [console.neon.tech](https://console.neon.tech) and sign up (GitHub login works)
-2. **New Project** → name it `rolearn`
-3. Copy the **pooled** connection string (must include `?sslmode=require`)
-4. Keep it for Step 3
+1. [console.neon.tech](https://console.neon.tech) → new project `rolearn`
+2. Copy the **pooled** connection string
+3. Locally: `npx prisma db push`
 
-Push the schema once (from your PC):
+---
+
+## Step 2 — PutPut file storage (no credit card)
+
+PutPut handles images, videos, and PDFs. Files are stored on Cloudflare R2 via PutPut — you never touch R2 directly.
+
+### Get your token (do this once)
 
 ```bash
-cd RoLearn
-npm install
-cp .env.example .env
-# Paste DATABASE_URL into .env
-npx prisma db push
+curl -X POST https://putput.io/api/v1/auth/guest
 ```
 
----
+Response:
 
-## Step 2 — Supabase file storage (10 min, no credit card)
+```json
+{ "token": "pp_xxxxxxxx" }
+```
 
-Cloudflare R2 also works but **requires a credit card** on Cloudflare. If you don't have one, use **Supabase Storage** instead — **1 GB free, no card**.
+**Important:**
+- You can only create **3 guest tokens per day** — save the token immediately
+- Guest tokens **expire after 30 days** — generate a new one before expiry
+- The token is a **server secret** — never put it in client code or commit it to GitHub
 
-### Create Supabase project (storage only)
+### Where to put `PUTPUT_TOKEN`
 
-1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**
-2. Pick a name and password (you won't use this DB — RoLearn uses Neon)
-3. Wait ~2 minutes for the project to spin up
+| Environment | Where |
+|---|---|
+| **Local dev** | `.env` → `PUTPUT_TOKEN=pp_...` |
+| **Cloudflare Workers** | Dashboard → Workers → rolearn → **Settings → Variables → Secrets** |
+| **Never** | Browser, GitHub, `NEXT_PUBLIC_*` vars |
 
-### Create a public bucket
-
-1. Left sidebar → **Storage**
-2. **New bucket** → name: `uploads`
-3. Turn **Public bucket** ON → Create
-
-### Get API keys
-
-1. **Project Settings** (gear icon) → **API**
-2. Copy:
-   - **Project URL** → `SUPABASE_URL`
-   - **service_role** key (under Project API keys) → `SUPABASE_SERVICE_ROLE_KEY`  
-     ⚠️ Keep this secret — server-only, never expose in client code
+In Cloudflare: add as **Encrypted** secret named exactly `PUTPUT_TOKEN`.
 
 ---
 
-## Step 3 — Deploy on Vercel (10 min)
+## Step 3 — Deploy to Cloudflare Workers
 
-### Import from GitHub
+### Option A — GitHub auto-deploy (recommended)
 
-1. Push your code to GitHub (or use the existing `popesmoke/RoLearn` repo)
-2. Go to [vercel.com/new](https://vercel.com/new)
-3. **Import** the RoLearn repository
-4. Leave build settings as default → **Deploy** (first deploy may fail — that's OK, we need env vars)
+1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create**
+2. Choose **Connect to Git** → select `popesmoke/RoLearn`
+3. Build settings:
 
-### Environment variables
+| Setting | Value |
+|---|---|
+| Framework | Next.js (or custom) |
+| Build command | `npm run deploy:cf` |
+| Or split | Build: `npx opennextjs-cloudflare build` / Deploy: `npx wrangler deploy` |
 
-Vercel → your project → **Settings** → **Environment Variables**
+4. Add **environment variables** (Settings → Variables):
 
-Add these for **Production** (and Preview if you want):
-
-| Variable | Value | Example |
+| Variable | Type | Value |
 |---|---|---|
-| `DATABASE_URL` | Neon pooled connection string | `postgresql://user:pass@...neon.tech/neondb?sslmode=require` |
-| `AUTH_SECRET` | Random 32+ character string | generate below |
-| `NEXTAUTH_SECRET` | Same as `AUTH_SECRET` or another random string | |
-| `NEXT_PUBLIC_APP_URL` | Your Vercel URL | `https://rolearn.vercel.app` |
-| `NEXTAUTH_URL` | Same as above | `https://rolearn.vercel.app` |
-| `OWNER_USERNAMES` | Your Roblox username | `YourRobloxName` |
-| `SUPABASE_URL` | From Supabase → Settings → API | `https://abcdefgh.supabase.co` |
-| `SUPABASE_SERVICE_ROLE_KEY` | service_role key from Supabase | `eyJhbG...` |
-| `SUPABASE_BUCKET_NAME` | `uploads` | `uploads` |
+| `DATABASE_URL` | Encrypted | Neon pooled URL |
+| `AUTH_SECRET` | Encrypted | Random 32+ chars |
+| `NEXTAUTH_SECRET` | Encrypted | Same or another secret |
+| `NEXT_PUBLIC_APP_URL` | Plain | `https://rolearn.yourname.workers.dev` |
+| `NEXTAUTH_URL` | Plain | Same as above |
+| `OWNER_USERNAMES` | Plain | Your Roblox username |
+| `PUTPUT_TOKEN` | **Encrypted** | `pp_...` from Step 2 |
 
-**Generate a secret** (PowerShell):
+5. Deploy → copy your `*.workers.dev` URL → update the two URL vars → redeploy
 
-```powershell
-[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
-```
-
-### Find your Vercel URL
-
-After first deploy: Vercel → **Deployments** → open the site.  
-URL looks like `https://rolearn-xxxxx.vercel.app` or `https://rolearn.vercel.app`.
-
-Set `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` to that **exact** URL (with `https://`), then **Redeploy** (Deployments → ⋯ → Redeploy).
-
-### Push database schema to production
-
-On your PC, with production `DATABASE_URL` in `.env` (or one-off):
+### Option B — Deploy from your PC
 
 ```bash
-npx prisma db push
+npm install
+npx prisma db push   # once, against Neon
+npm run deploy:cf
 ```
 
-Or run it in Vercel's build — the repo `scripts/build.mjs` already runs `prisma generate`; schema push is done locally against the Neon URL.
+First time: `npx wrangler login` to authenticate.
+
+### Push schema to production
+
+```bash
+# With production DATABASE_URL in .env
+npx prisma db push
+```
 
 ---
 
 ## Step 4 — Test
 
-1. Open `https://your-app.vercel.app`
-2. **Sign in with Roblox** (bio verification)
-3. Try **Studio → Portfolio** → upload an image
-4. Try **Create** → add a photo to a post
-5. Try **Studio → Courses** → written guide (works even without storage)
-
----
-
-## No storage? You can still launch
-
-These work **without** any file storage:
-
-- Roblox login & profiles
-- Written courses (text only, no PDF)
-- Services, jobs, team posts (text only)
-- Messages, search, admin panel
-
-Add Supabase Storage when you want images, videos, or PDF courses.
-
----
-
-## Storage options compared
-
-| Option | Credit card? | Free storage | Best for |
-|---|---|---|---|
-| **Supabase Storage** ✅ | **No** | 1 GB | You — no card, works on Vercel |
-| Cloudflare R2 | **Yes** (Cloudflare asks for card) | 10 GB | Later, if you get a card |
-| Uploadthing | No | 2 GB | Next.js apps (needs extra setup) |
-| Local `public/uploads/` | No | N/A | Dev only — **not** persistent on Vercel |
-
-RoLearn tries **R2 first** (if `R2_*` vars are set), then **Supabase**, then local files (dev only).
-
----
-
-## Optional later: custom domain
-
-When you buy a domain:
-
-1. Vercel → Project → **Settings** → **Domains** → add your domain
-2. Follow Vercel's DNS instructions at your registrar
-3. Update `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` to `https://yourdomain.com`
-4. Redeploy
-
-You can use Cloudflare for DNS then — see [CLOUDFLARE.md](./CLOUDFLARE.md).
-
----
-
-## Troubleshooting
-
-**Upload fails on Vercel**  
-→ Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_BUCKET_NAME`. Bucket must be **public**.
-
-**Roblox login fails after deploy**  
-→ `NEXTAUTH_URL` must match your site URL exactly (including `https://`).
-
-**"Verification failed"**  
-→ Bio must match the phrase exactly. Code expires in 15 minutes.
-
-**Database connection error**  
-→ Use Neon's **pooled** URL with `?sslmode=require`.
-
-**Site feels slow between pages**  
-→ Vercel Hobby has cold starts after ~5 min idle. First click may take 1–3s. Loading skeletons should appear instantly. For always-on hosting, see Railway in [CLOUDFLARE.md](./CLOUDFLARE.md#alternative-always-on-hosting).
-
-**Supabase project paused**  
-→ Free Supabase projects pause after 7 days idle. Open the dashboard and click **Restore** — storage still works.
-
----
-
-## Quick checklist
-
-- [ ] Neon database created, `DATABASE_URL` in Vercel
-- [ ] `npx prisma db push` run against production DB
-- [ ] `AUTH_SECRET` + `NEXTAUTH_SECRET` set
-- [ ] `NEXT_PUBLIC_APP_URL` + `NEXTAUTH_URL` = your `*.vercel.app` URL
-- [ ] `OWNER_USERNAMES` = your Roblox username
-- [ ] Supabase bucket `uploads` (public) + 3 `SUPABASE_*` env vars
-- [ ] Redeploy after changing env vars
-- [ ] Sign in and test an image upload
+1. Open your `*.workers.dev` URL
+2. Sign in with Roblox
+3. **Studio → Portfolio** → upload an image (should return a `cdn.putput.io` URL)
+4. Navigate between pages — should feel faster than Vercel cold starts
 
 ---
 
@@ -217,9 +141,85 @@ git clone https://github.com/popesmoke/RoLearn.git
 cd RoLearn
 npm install
 cp .env.example .env
-# Add DATABASE_URL and OWNER_USERNAMES
+# Add DATABASE_URL, OWNER_USERNAMES, PUTPUT_TOKEN
 npx prisma db push
 npm run dev
 ```
 
-Uploads save to `public/uploads/` locally — no Supabase needed on your PC.
+Without `PUTPUT_TOKEN`, uploads save to `public/uploads/` locally.
+
+Preview in the Workers runtime locally:
+
+```bash
+npm run preview:cf
+```
+
+---
+
+## Storage priority
+
+RoLearn picks storage automatically:
+
+1. **PutPut** — if `PUTPUT_TOKEN` is set ✅ recommended
+2. Cloudflare R2 — if `R2_*` vars are set (needs credit card)
+3. Supabase — if `SUPABASE_*` vars are set
+4. Local `public/uploads/` — dev only
+
+---
+
+## PutPut token — what to do with it
+
+Your `pp_...` token is like a database password:
+
+1. **Add to Cloudflare** as encrypted secret `PUTPUT_TOKEN`
+2. **Add to local `.env`** for development (never commit)
+3. **Do not** expose in the browser or `NEXT_PUBLIC_*` variables
+4. **Do not** call `/auth/guest` again unless the token expired (30 days)
+5. When it expires, generate a new token and update the Cloudflare secret
+
+One token serves your entire app — all users' uploads go through your server using this single token.
+
+---
+
+## Optional: custom domain (later)
+
+When you buy a domain:
+
+1. Cloudflare Dashboard → your domain → **DNS**
+2. Workers → rolearn → **Settings → Domains & Routes** → add custom domain
+3. Update `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` → redeploy
+
+---
+
+## Alternative: Vercel
+
+Still supported. Same env vars work on Vercel — just connect GitHub to Vercel instead. Vercel is simpler to set up but slower on cold starts.
+
+---
+
+## Troubleshooting
+
+**Upload fails** — Check `PUTPUT_TOKEN` is set as an encrypted secret in Cloudflare. Token may have expired (30 days).
+
+**Roblox login fails** — `NEXTAUTH_URL` must exactly match your `*.workers.dev` URL.
+
+**Build fails on Cloudflare** — Worker free plan has a 3 MB compressed size limit. If you hit this, upgrade to Workers Paid ($5/mo) for 10 MB.
+
+**Database errors** — Use Neon's **pooled** URL with `?sslmode=require`.
+
+**PutPut rate limit** — 100 presigns per hour per token. Enough for normal use.
+
+---
+
+## Quick checklist
+
+- [ ] Neon database + `DATABASE_URL` secret
+- [ ] `npx prisma db push` against production
+- [ ] PutPut token generated and saved as `PUTPUT_TOKEN` secret
+- [ ] `AUTH_SECRET` + `NEXTAUTH_SECRET` set
+- [ ] `NEXT_PUBLIC_APP_URL` + `NEXTAUTH_URL` = your workers.dev URL
+- [ ] `OWNER_USERNAMES` = your Roblox username
+- [ ] Deployed via GitHub or `npm run deploy:cf`
+- [ ] Tested image upload
+
+See also: [CLOUDFLARE.md](./CLOUDFLARE.md) for DNS/R2 details when you get a domain or credit card.

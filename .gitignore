@@ -37,6 +37,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cloudflare workers / opennext
+.open-next
+.wrangler
+
 # local uploads (dev only)
 /public/uploads/
 
