@@ -4,11 +4,13 @@ type RobloxUserLookup = {
   id: number;
   name: string;
   displayName: string;
+  hasVerifiedBadge?: boolean;
 };
 
 type RobloxUserProfile = {
   description: string;
   created: string;
+  hasVerifiedBadge?: boolean;
 };
 
 type RobloxThumbnail = {
@@ -94,4 +96,11 @@ export function accountAgeDays(created: string): number {
   const createdAt = new Date(created);
   const diff = Date.now() - createdAt.getTime();
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
+/** Roblox blue checkmark — not the same as RoLearn bio sign-in. */
+export function hasRobloxVerifiedBadge(
+  user: { hasVerifiedBadge?: boolean } | null | undefined,
+): boolean {
+  return Boolean(user?.hasVerifiedBadge);
 }

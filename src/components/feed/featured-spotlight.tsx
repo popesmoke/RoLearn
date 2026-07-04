@@ -13,7 +13,7 @@ export function FeaturedSpotlight({ posts }: FeaturedSpotlightProps) {
   if (posts.length === 0) return null;
 
   return (
-    <div className="border-b border-border bg-accent/5 px-4 py-4">
+    <div className="border-b border-border bg-accent/5 px-4 py-5 sm:px-6">
       <div className="mb-3 flex items-center gap-2">
         <Icon8 name="star" size={20} className="text-accent" />
         <p className="font-bold">Featured listings</p>

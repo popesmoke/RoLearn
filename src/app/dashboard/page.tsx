@@ -94,7 +94,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold">{user.displayName ?? handle}</h2>
-                {user.isVerified ? <AppIcon name="verified" size={20} /> : null}
+                {user.isVerified ? (
+                  <span title="Roblox verified" className="inline-flex">
+                    <AppIcon name="verified" size={20} />
+                  </span>
+                ) : null}
               </div>
               <p className="text-sm text-muted">@{handle}</p>
               <Link href={profilePath(user)} className="text-sm text-accent hover:underline">

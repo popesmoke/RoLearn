@@ -188,7 +188,7 @@ export function LiveFeed({ initialItems }: LiveFeedProps) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2 text-sm">
           <span className={`live-dot ${live ? "live-dot-active" : ""}`} />
           <span className="font-medium text-muted">{live ? "Live" : "Reconnecting…"}</span>
@@ -203,7 +203,7 @@ export function LiveFeed({ initialItems }: LiveFeedProps) {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-border px-4 py-2">
+      <div className="flex flex-wrap gap-2 border-b border-border px-4 py-3 sm:px-6">
         {filters.map((f) => (
           <button
             key={f.id}

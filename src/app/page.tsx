@@ -20,8 +20,8 @@ const highlights: { icon: IconName; title: string; description: string }[] = [
   },
   {
     icon: "verified",
-    title: "Trust that counts",
-    description: "Verified accounts, hire-me status, and reputation — built for how Roblox studios actually work.",
+    title: "Roblox verified creators",
+    description: "Blue checkmark verified accounts, hire-me status, and reputation — built for how Roblox studios actually work.",
   },
 ];
 

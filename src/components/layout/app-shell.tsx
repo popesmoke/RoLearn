@@ -32,7 +32,7 @@ export async function AppShell({
       <div className="min-h-screen pb-16 lg:pb-0">
         {title ? (
           <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-md">
-            <div className="flex items-center justify-between gap-4 px-4 py-4">
+            <div className="flex items-center justify-between gap-4 px-4 py-5 sm:px-6">
               <div>
                 <h1 className="text-xl font-bold">{title}</h1>
                 {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
@@ -41,7 +41,7 @@ export async function AppShell({
             </div>
           </header>
         ) : null}
-        <main>{children}</main>
+        <main className="main-content">{children}</main>
         <footer className="hidden border-t border-border px-4 py-4 text-center text-xs text-subtle lg:block">
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             <Link href="/terms" className="hover:text-muted">

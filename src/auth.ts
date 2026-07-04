@@ -6,6 +6,7 @@ import {
   bioContainsCode,
   getRobloxAvatarUrl,
   getRobloxUserProfile,
+  hasRobloxVerifiedBadge,
   lookupRobloxUser,
   normalizeUsername,
   robloxEmail,
@@ -52,6 +53,7 @@ export const authOptions: NextAuthOptions = {
         const avatarUrl = await getRobloxAvatarUrl(String(robloxUser.id));
         const email = robloxEmail(String(robloxUser.id));
         const usernameSlug = robloxUser.name.toLowerCase();
+        const robloxVerified = hasRobloxVerifiedBadge(profile) || hasRobloxVerifiedBadge(robloxUser);
 
         const dbUser = await prisma.user.upsert({
           where: { robloxUserId: String(robloxUser.id) },
@@ -62,7 +64,7 @@ export const authOptions: NextAuthOptions = {
             robloxUsername: robloxUser.name,
             displayName: robloxUser.displayName,
             avatarUrl,
-            isVerified: true,
+            isVerified: robloxVerified,
             accountAgeDays: accountAgeDays(profile.created),
             trustLevel: "RISING",
             trustScore: 10,
@@ -70,7 +72,7 @@ export const authOptions: NextAuthOptions = {
           update: {
             displayName: robloxUser.displayName,
             avatarUrl,
-            isVerified: true,
+            isVerified: robloxVerified,
             accountAgeDays: accountAgeDays(profile.created),
           },
         });

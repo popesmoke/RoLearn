@@ -84,7 +84,7 @@ export default async function ExplorePage({ searchParams }: PageProps) {
       {user && !user.onboardingDone ? (
         <OnboardingChecklist
           onboardingDone={user.onboardingDone}
-          isVerified={user.isVerified}
+          hasLinkedRoblox={Boolean(user.robloxUserId)}
           hasSkill={onboardingStats[0] > 0}
           hasPost={onboardingStats[1] > 0}
           hasApplied={onboardingStats[2] > 0}

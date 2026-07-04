@@ -30,11 +30,11 @@ export function FeedFilters() {
   }
 
   return (
-    <div className="flex flex-wrap gap-2 border-b border-border px-4 py-3">
+    <div className="flex flex-wrap gap-3 border-b border-border px-4 py-4 sm:px-6">
       <select
         value={params.get("type") ?? ""}
         onChange={(e) => update("type", e.target.value)}
-        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-foreground"
+        className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
         aria-label="Filter by type"
       >
         {types.map((t) => (
@@ -47,7 +47,7 @@ export function FeedFilters() {
       <select
         value={params.get("skill") ?? ""}
         onChange={(e) => update("skill", e.target.value)}
-        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-foreground"
+        className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
         aria-label="Filter by skill"
       >
         <option value="">Any skill</option>
@@ -61,7 +61,7 @@ export function FeedFilters() {
       <select
         value={params.get("currency") ?? ""}
         onChange={(e) => update("currency", e.target.value)}
-        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-foreground"
+        className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
         aria-label="Filter by currency"
       >
         {currencies.map((c) => (
@@ -71,17 +71,17 @@ export function FeedFilters() {
         ))}
       </select>
 
-      <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm text-muted">
+      <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted">
         <input
           type="checkbox"
           checked={params.get("verified") === "1"}
           onChange={(e) => update("verified", e.target.checked ? "1" : "")}
           className="rounded border-border"
         />
-        Verified only
+        Roblox verified only
       </label>
 
-      <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm text-muted">
+      <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted">
         <input
           type="checkbox"
           checked={params.get("following") === "1"}

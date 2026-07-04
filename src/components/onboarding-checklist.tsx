@@ -11,7 +11,7 @@ const DISMISS_KEY = "rolearn-onboarding-dismissed";
 
 type OnboardingChecklistProps = {
   onboardingDone: boolean;
-  isVerified: boolean;
+  hasLinkedRoblox: boolean;
   hasSkill: boolean;
   hasPost: boolean;
   hasApplied: boolean;
@@ -24,7 +24,7 @@ const STEPS: {
   icon: IconName;
   check: (p: OnboardingChecklistProps) => boolean;
 }[] = [
-  { id: "verify", label: "Verify your Roblox account", href: "/dashboard", icon: "verified", check: (p) => p.isVerified },
+  { id: "link", label: "Sign in with Roblox", href: "/", icon: "verified", check: (p) => p.hasLinkedRoblox },
   { id: "skill", label: "Add a skill to your profile", href: "/dashboard?tab=profile", icon: "star", check: (p) => p.hasSkill },
   { id: "post", label: "Create your first post", href: "/compose", icon: "compose", check: (p) => p.hasPost },
   { id: "apply", label: "Apply to a listing once", href: "/explore", icon: "apply", check: (p) => p.hasApplied },

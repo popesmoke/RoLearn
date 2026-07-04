@@ -98,7 +98,11 @@ export default async function ProfilePage({ params }: PageProps) {
                 <div className="pb-1">
                   <div className="flex items-center gap-2">
                     <h1 className="text-2xl font-bold">{displayName}</h1>
-                    {user.isVerified ? <AppIcon name="verified" size={22} /> : null}
+                    {user.isVerified ? (
+                      <span title="Roblox verified" className="inline-flex">
+                        <AppIcon name="verified" size={22} />
+                      </span>
+                    ) : null}
                   </div>
                   <p className="text-muted">@{handle}</p>
                   <p className="text-sm text-subtle">

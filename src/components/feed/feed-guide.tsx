@@ -18,7 +18,7 @@ export function FeedGuide() {
   if (!visible) return null;
 
   return (
-    <div className="border-b border-border bg-accent/5 px-4 py-4">
+    <div className="border-b border-border bg-accent/5 px-4 py-5 sm:px-6">
       <div className="flex gap-3">
         <Icon8 name="rocket" size={32} className="shrink-0 text-accent" />
         <div className="min-w-0 flex-1">
