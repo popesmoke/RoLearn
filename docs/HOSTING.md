@@ -88,9 +88,11 @@ In Cloudflare: add as **Encrypted** secret named exactly `PUTPUT_TOKEN`.
 
 | Setting | Value |
 |---|---|
-| Framework | Next.js (or custom) |
-| Build command | `npm run deploy:cf` |
-| Or split | Build: `npx opennextjs-cloudflare build` / Deploy: `npx wrangler deploy` |
+| Build command | `npm run build:cf` |
+| Deploy command | `npx opennextjs-cloudflare deploy` |
+| Non-production branch deploy | `npx opennextjs-cloudflare upload` |
+
+Do **not** use `npm run deploy:cf` as the build command — it builds and deploys in one step, which conflicts with the separate deploy phase in Workers Builds.
 
 4. Add **environment variables** (Settings → Variables):
 
