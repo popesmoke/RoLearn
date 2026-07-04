@@ -37,6 +37,7 @@ const authorSelect = {
   trustLevel: true,
   responseCount: true,
   responseTotalMin: true,
+  role: true,
 } as const;
 
 type FeedQuery = FeedFilters & {

@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { authOptions } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getHandle } from "@/lib/user-display";
+import { checkIsAdmin, checkIsOwner, checkIsStaff } from "@/lib/roles";
+
+export { checkIsAdmin, checkIsOwner, checkIsStaff } from "@/lib/roles";
 
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
@@ -24,27 +26,31 @@ export async function requireUser() {
   return user;
 }
 
-function isAdminUsername(user: { username?: string | null; robloxUsername?: string | null }) {
-  const list =
-    process.env.ADMIN_USERNAMES?.split(",").map((u) => u.trim().toLowerCase()).filter(Boolean) ??
-    [];
-  if (list.length === 0) return false;
-  const handle = getHandle(user).toLowerCase();
-  return list.includes(handle);
-}
-
-export async function requireAdmin() {
+export async function requireStaff() {
   const user = await requireUser();
-  if (user.role !== UserRole.ADMIN && user.role !== UserRole.MOD && !isAdminUsername(user)) {
+  if (!checkIsStaff(user)) {
     redirect("/explore");
   }
   return user;
 }
 
-export function checkIsAdmin(user: {
-  role: UserRole;
-  username?: string | null;
-  robloxUsername?: string | null;
-}) {
-  return user.role === UserRole.ADMIN || user.role === UserRole.MOD || isAdminUsername(user);
+/** @deprecated Use requireStaff — kept for compatibility */
+export async function requireAdmin() {
+  return requireStaff();
+}
+
+export async function requireOwner() {
+  const user = await requireUser();
+  if (!checkIsOwner(user)) {
+    redirect("/admin");
+  }
+  return user;
+}
+
+export async function requireAtLeastAdmin() {
+  const user = await requireUser();
+  if (!checkIsAdmin(user)) {
+    redirect("/explore");
+  }
+  return user;
 }

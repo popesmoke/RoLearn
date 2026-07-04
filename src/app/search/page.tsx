@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/icons";
 import { skillCategories } from "@/lib/constants";
 import { formatCategory } from "@/lib/utils";
+import { RoleBadge } from "@/components/ui/role-badge";
+import { isStaffRole } from "@/lib/roles";
 import { getDisplayName, getHandle, profilePath } from "@/lib/user-display";
 import { SkillCategory } from "@prisma/client";
 
@@ -22,6 +24,7 @@ const authorSelect = {
   displayName: true,
   email: true,
   avatarUrl: true,
+  role: true,
 } as const;
 
 type PageProps = {
@@ -190,7 +193,10 @@ export default async function SearchPage({ searchParams }: PageProps) {
                         size="md"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold">{getDisplayName(user)}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold">{getDisplayName(user)}</p>
+                          {isStaffRole(user.role) ? <RoleBadge role={user.role} /> : null}
+                        </div>
                         <p className="text-sm text-muted">@{getHandle(user)}</p>
                         {user.hireMeOpen ? (
                           <Badge variant="success" className="mt-1">Hire me</Badge>

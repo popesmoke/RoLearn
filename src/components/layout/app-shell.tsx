@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { checkIsAdmin, getCurrentUser } from "@/lib/user";
+import { checkIsOwner, checkIsStaff, getCurrentUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "./sidebar";
 import { RightRail } from "./right-rail";
@@ -24,11 +24,12 @@ export async function AppShell({
   const unreadCount = user
     ? await prisma.notification.count({ where: { userId: user.id, readAt: null } })
     : 0;
-  const isAdmin = user ? checkIsAdmin(user) : false;
+  const isStaff = user ? checkIsStaff(user) : false;
+  const isOwner = user ? checkIsOwner(user) : false;
 
   return (
     <div className="app-grid bg-background text-foreground">
-      <Sidebar user={user} unreadCount={unreadCount} isAdmin={isAdmin} />
+      <Sidebar user={user} unreadCount={unreadCount} isStaff={isStaff} isOwner={isOwner} />
       <div className="min-h-screen pb-16 lg:pb-0">
         {title ? (
           <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-md">
@@ -66,7 +67,7 @@ export async function AppShell({
         </footer>
       </div>
       {showRightRail ? <RightRail /> : <div className="hidden lg:block" />}
-      <MobileNav />
+      <MobileNav isStaff={isStaff} isOwner={isOwner} />
     </div>
   );
 }

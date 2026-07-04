@@ -16,6 +16,8 @@ import { fetchUserPosts, serializeFeed } from "@/lib/feed";
 import { trackProfileView } from "@/lib/analytics";
 import { getDisplayName, getHandle } from "@/lib/user-display";
 import { getCurrentUser } from "@/lib/user";
+import { RoleBadge } from "@/components/ui/role-badge";
+import { isStaffRole } from "@/lib/roles";
 import { getFollowStats, isFollowing } from "@/app/actions/follows";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +105,7 @@ export default async function ProfilePage({ params }: PageProps) {
                         <AppIcon name="verified" size={22} />
                       </span>
                     ) : null}
+                    {isStaffRole(user.role) ? <RoleBadge role={user.role} /> : null}
                   </div>
                   <p className="text-muted">@{handle}</p>
                   <p className="text-sm text-subtle">

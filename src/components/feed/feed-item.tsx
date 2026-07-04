@@ -22,6 +22,7 @@ import {
 } from "@/lib/utils";
 import { responseRateLabel } from "@/lib/trust";
 import { getDisplayName, getHandle, profilePath } from "@/lib/user-display";
+import { RoleBadge } from "@/components/ui/role-badge";
 import { postPath } from "@/lib/posts";
 
 export type FeedAuthor = {
@@ -32,6 +33,7 @@ export type FeedAuthor = {
   email: string;
   avatarUrl?: string | null;
   isVerified?: boolean;
+  role?: "USER" | "MOD" | "ADMIN" | "OWNER";
   responseCount?: number;
   responseTotalMin?: number;
 };
@@ -160,6 +162,9 @@ export function FeedItem({
                   <span title="Roblox verified" className="inline-flex">
                     <Icon8 name="verified" size={18} className="text-accent" />
                   </span>
+                ) : null}
+                {author.role && author.role !== "USER" ? (
+                  <RoleBadge role={author.role} />
                 ) : null}
                 <span className="text-sm text-muted">@{handle}</span>
                 <span className="text-sm text-subtle">· {timeAgo(createdAt)}</span>

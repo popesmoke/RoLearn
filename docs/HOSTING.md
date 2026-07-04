@@ -1,267 +1,178 @@
-# RoLearn — Free Hosting & Setup Guide
+# RoLearn — Deployment Guide (Vercel + Cloudflare + Neon)
 
-Run RoLearn completely free using Roblox bio verification, free PostgreSQL, and free media storage.
+Run RoLearn for **$0/month** using Roblox bio verification, free PostgreSQL, and Cloudflare for DNS + media storage.
 
-## Recommended hosting (faster than Vercel Hobby)
+## Recommended architecture
 
-Vercel Hobby can feel slow on cold starts. These options are faster and work great with RoLearn:
-
-| Platform | Speed | Setup |
-|---|---|---|
-| **[Railway](https://railway.app)** | Fast, always-on | Connect GitHub → uses `Dockerfile` |
-| **[Render](https://render.com)** | Fast, free tier | **Web Service** (full app, not Static Site) |
-| **[Cloudflare Pages](https://pages.cloudflare.com)** | Global edge | Next.js via OpenNext adapter |
-| Vercel | Good, cold starts on free | GitHub integration (default) |
-
-**Recommended production stack:** Railway or Render + Neon PostgreSQL + Cloudflare R2
-
-### Render is not backend-only
-
-Render has different service types. RoLearn needs a **Web Service** — that runs the whole Next.js app:
-
-- Pages (`/`, `/explore`, `/compose`, …)
-- API routes (`/api/feed`, `/api/upload`, live SSE stream)
-- Server actions and auth
-
-Do **not** pick **Static Site** on Render. That is frontend-only (HTML/CSS/JS files) and cannot run RoLearn’s server code, uploads, or live feed.
-
-On Render: **New → Web Service** → connect GitHub → Docker (uses repo `Dockerfile`) or Node with `npm run build` + `npm start`.
-
-R2 is required for photos/videos in production (any host):
-1. [dash.cloudflare.com](https://dash.cloudflare.com) → R2 → Create bucket `rolearn-uploads`
-2. Enable public access or attach a custom domain
-3. Create API token with Object Read & Write
-4. Add to env:
-
-```env
-R2_ACCOUNT_ID="your-account-id"
-R2_ACCESS_KEY_ID="..."
-R2_SECRET_ACCESS_KEY="..."
-R2_BUCKET_NAME="rolearn-uploads"
-R2_PUBLIC_URL="https://pub-xxxx.r2.dev"
 ```
+Users → Cloudflare DNS (optional CDN/proxy)
+      → Vercel (Next.js app — pages, API, auth)
+      → Neon PostgreSQL (database)
+      → Cloudflare R2 (photo/video uploads)
+```
+
+| Service | What it hosts | Why this one |
+|---|---|---|
+| **[Vercel](https://vercel.com)** | The website (Next.js) | Best free Next.js hosting, auto-deploy from GitHub |
+| **[Neon](https://neon.tech)** | PostgreSQL database | Best free Postgres — 512 MB, serverless, no sleep |
+| **[Cloudflare](https://dash.cloudflare.com)** | DNS + R2 file storage | Free DNS, CDN, DDoS protection; R2 has 10 GB free |
+| **[GitHub](https://github.com)** | Source code + CI | Free, triggers Vercel deploys on push |
+
+### Why not Supabase?
+
+Neon is simpler for RoLearn — you only need PostgreSQL. Supabase adds auth/storage you don't need (RoLearn has its own Roblox auth). Neon free tier: **512 MB storage**, branching, no project pause on free tier.
+
+### Why Vercel + Cloudflare together?
+
+- **Vercel** runs your Next.js app (the actual site)
+- **Cloudflare** sits in front for custom domain DNS, SSL, and caching (optional but recommended for production)
+- **Cloudflare R2** stores uploaded images/videos (Vercel doesn't provide file storage)
+
+You do **not** host the app on Cloudflare Pages unless you want to — Vercel is easier for this Next.js setup.
 
 ---
 
-## Free stack
+## Step-by-step setup
 
-| Service | Use | Free tier |
-|---|---|---|
-| [Railway](https://railway.app) / [Render](https://render.com) | Fast Next.js hosting (Docker) | Free tiers available |
-| [Neon](https://neon.tech) | PostgreSQL database | 512 MB storage |
-| [Cloudflare R2](https://www.cloudflare.com/products/r2/) | Photos & video uploads | 10 GB free |
-| [GitHub](https://github.com) | Code + auto-deploy | Free |
-| [Icons8](https://icons8.com/icons/all) | UI icons (CDN, themed) | Free with attribution |
-| [Roblox API](https://create.roblox.com/docs) | Account verification | Free, no API key needed |
-| [Vercel](https://vercel.com) | Alternative Next.js host | Hobby plan |
+### 1. Database — Neon (free)
 
-Optional later (still free tiers available):
-
-| Service | Use |
-|---|---|
-| [Cloudflare R2](https://www.cloudflare.com/products/r2/) | File uploads (10 GB free) |
-| [Upstash](https://upstash.com) | Redis cache (10K commands/day) |
-| [Resend](https://resend.com) | Email (100/day) |
-
----
-
-## 1) Clone and install
-
-```bash
-git clone https://github.com/popesmoke/RoLearn.git
-cd RoLearn
-npm install
-cp .env.example .env
-```
-
-## 2) Create a free Neon database
-
-1. Go to [console.neon.tech](https://console.neon.tech)
-2. Create a project named `rolearn`
-3. Copy the **pooled** connection string
-4. Paste it into `.env`:
-
-```env
-DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require"
-```
-
-Push the schema:
+1. Go to [console.neon.tech](https://console.neon.tech) → create project `rolearn`
+2. Copy the **pooled** connection string
+3. Save it — you'll add it to Vercel env vars
 
 ```bash
 npx prisma db push
 ```
 
-## 3) Set environment variables
+### 2. Media storage — Cloudflare R2 (free)
 
-Edit `.env`:
+1. [dash.cloudflare.com](https://dash.cloudflare.com) → **R2** → Create bucket `rolearn-uploads`
+2. Enable public access or attach a custom domain
+3. Create API token with **Object Read & Write**
+4. Note your account ID from the R2 overview page
 
-```env
-DATABASE_URL="postgresql://..."
-AUTH_SECRET="your-random-secret-here"
-NEXTAUTH_SECRET="same-or-different-secret"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXTAUTH_URL="http://localhost:3000"
-```
+### 3. Deploy app — Vercel (free)
 
-Generate a secure secret:
-
-```bash
-# macOS / Linux
-openssl rand -base64 32
-
-# Windows PowerShell
-[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
-```
-
-No Google OAuth or Roblox API keys are required — login uses Roblox bio verification.
-
-## 4) Run locally
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-### How login works
-
-1. Click **Sign in with Roblox**
-2. Enter your Roblox username
-3. Copy the generated phrase (e.g. `RL jazz turtle`)
-4. Set your Roblox profile bio to **only** that code
-5. Click **Verify** — RoLearn checks your bio via the Roblox API
-6. Change your bio back anytime after signing in
-
----
-
-## 5) Deploy to Railway or Render (recommended)
-
-Both host the **entire** RoLearn app — UI and backend together.
-
-### Railway (easiest)
-
-1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub**
-2. Select the RoLearn repo (uses `Dockerfile` automatically)
-3. Add env vars: `DATABASE_URL`, `AUTH_SECRET`, `NEXTAUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, `NEXTAUTH_URL`, plus R2 vars for media
-4. Deploy → copy the public URL → set `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` to that URL
-
-### Render (Web Service)
-
-1. [render.com](https://render.com) → **New +** → **Web Service** (not Static Site)
-2. Connect GitHub repo
-3. **Environment:** Docker *or* Node with build `npm install && npm run build`, start `npm start`
-4. Add the same env vars as above
-5. Free tier spins down after ~15 min idle (first visit may be slow); paid tier stays warm
-
----
-
-## 6) Deploy to Vercel (alternative)
-
-1. Push your repo to GitHub
-2. Go to [vercel.com/dashboard](https://vercel.com/dashboard)
-3. **Add New Project** → import your RoLearn repo
-4. Add these environment variables:
+1. Push code to GitHub (see below)
+2. [vercel.com/dashboard](https://vercel.com/dashboard) → **Add New Project** → import `RoLearn`
+3. Add environment variables:
 
 | Variable | Value |
 |---|---|
 | `DATABASE_URL` | Neon pooled connection string |
 | `AUTH_SECRET` | Random 32+ char secret |
 | `NEXTAUTH_SECRET` | Same or another secret |
-| `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` |
-| `NEXTAUTH_URL` | `https://your-app.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` (update after first deploy) |
+| `NEXTAUTH_URL` | Same as above |
+| `OWNER_USERNAMES` | Your Roblox username (gives you Owner panel access) |
+| `R2_ACCOUNT_ID` | Cloudflare account ID |
+| `R2_ACCESS_KEY_ID` | R2 API token key |
+| `R2_SECRET_ACCESS_KEY` | R2 API token secret |
+| `R2_BUCKET_NAME` | `rolearn-uploads` |
+| `R2_PUBLIC_URL` | `https://pub-xxxx.r2.dev` |
 
-5. Click **Deploy**
+4. Click **Deploy**
+5. After deploy, update `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` to your real Vercel URL → redeploy
 
-After deploy, run `npx prisma db push` against your production database if tables don't exist yet (or run it locally with the production `DATABASE_URL`).
+### 4. Custom domain — Cloudflare DNS (optional)
 
-Vercel auto-redeploys on every `git push` to main.
+1. Buy a domain or use one you own
+2. In Cloudflare → **Add site** → follow nameserver instructions
+3. Add a **CNAME** record pointing to Vercel (Project → Settings → Domains shows the exact value)
+4. In Vercel → Project → Settings → Domains → add your domain
+5. Update env vars to use your custom domain
 
----
-
-## 7) GitHub workflow
+### 5. Push to GitHub
 
 ```bash
 git add .
-git commit -m "Your changes"
+git commit -m "Add owner role, staff badges, and deployment guide"
 git push origin main
 ```
 
-CI runs lint + build on every push. Vercel deploys automatically.
+Vercel auto-redeploys on every push to `main`.
 
 ---
 
-## 8) What you get for $0
+## Role system
 
-- Roblox-verified creator accounts
-- Public profiles at `/u/username`
-- Marketplace (services + jobs)
-- Team finder with apply buttons
-- Direct messages between creators
-- Search with skill/type filters
-- Creator studio dashboard
-- PostgreSQL database (Neon free tier)
-- HTTPS hosting (Vercel free tier)
+| Role | Badge | Access |
+|---|---|---|
+| **Owner** | Gold | Full control — analytics, role management, delete content, announcements |
+| **Admin** | Purple | Announcements, featured listings, promote mods |
+| **Mod** | Blue | Resolve reports, view stats |
+
+Set your Roblox username in `OWNER_USERNAMES` before first login to auto-receive Owner access.
 
 ---
 
-## 8) Troubleshooting
+## Local development
 
-**"Verification failed"**
-- Bio must contain **exactly** the phrase — no extra text, spaces, or emojis
-- Wait a few seconds after saving your Roblox bio before clicking Verify
-- Codes expire after 15 minutes — generate a new one if needed
-
-**Database connection errors**
-- Use Neon's **pooled** connection string (not direct)
-- Ensure `?sslmode=require` is in the URL
-
-**Build fails on Vercel**
-- Check all env vars are set
-- `AUTH_SECRET` must be at least 32 characters
-
-**Roblox avatar not loading**
-- Roblox CDN URLs are allowed in `next.config.ts` — redeploy if you changed config
-
-**Prisma schema changes**
-- Run `npx prisma db push` after pulling updates
-- Run `npx prisma generate` if types are stale
-
----
-
-## 9) Staying free long-term
-
-- Neon free tier: 512 MB — plenty for early stage
-- Vercel Hobby: 100 GB bandwidth/month — enough for thousands of users
-- Roblox API: no rate limits for basic user lookups at small scale
-- Icons8: icons load from their CDN (free tier)
-
-When you outgrow free tiers, Neon and Vercel have affordable paid plans. But you can launch and run a real product on $0/month.
-
----
-
-## 10) Optional upgrades (still mostly free)
-
-### Cloudflare R2 for uploads
-
-```env
-R2_ACCOUNT_ID=""
-R2_ACCESS_KEY_ID=""
-R2_SECRET_ACCESS_KEY=""
-R2_BUCKET_NAME="rolearn-uploads"
-R2_PUBLIC_URL=""
+```bash
+git clone https://github.com/popesmoke/RoLearn.git
+cd RoLearn
+npm install
+cp .env.example .env
+# Edit .env with your Neon DATABASE_URL and OWNER_USERNAMES
+npx prisma db push
+npm run dev
 ```
 
-### Upstash Redis for caching
+Open [http://localhost:3000](http://localhost:3000).
 
-```env
-UPSTASH_REDIS_REST_URL=""
-UPSTASH_REDIS_REST_TOKEN=""
-```
+### Login flow
 
-### Resend for email notifications
+1. Click **Sign in with Roblox**
+2. Enter your Roblox username
+3. Copy the phrase (e.g. `RL jazz turtle`)
+4. Set your Roblox bio to **exactly** that phrase
+5. Click **Verify**
 
-```env
-RESEND_API_KEY=""
-```
+---
 
-These are wired in `.env.example` for future use — not required to launch.
+## Alternative hosts
+
+If Vercel cold starts bother you:
+
+| Platform | Notes |
+|---|---|
+| **[Railway](https://railway.app)** | Always-on Docker, uses repo `Dockerfile` |
+| **[Render](https://render.com)** | Web Service (not Static Site), Docker or Node |
+
+Same Neon + Cloudflare R2 stack works with any of these.
+
+---
+
+## Free tier limits
+
+| Service | Free limit | Enough for |
+|---|---|---|
+| Neon | 512 MB storage | Thousands of users early on |
+| Vercel Hobby | 100 GB bandwidth/mo | Small-to-medium traffic |
+| Cloudflare R2 | 10 GB storage | Lots of images/videos |
+| Cloudflare DNS | Unlimited | Any traffic |
+
+---
+
+## Troubleshooting
+
+**"Verification failed"** — Bio must match the phrase exactly. Codes expire in 15 minutes.
+
+**Database errors** — Use Neon's **pooled** URL with `?sslmode=require`.
+
+**Build fails** — Ensure `AUTH_SECRET` is 32+ characters and all env vars are set in Vercel.
+
+**Owner panel not showing** — Set `OWNER_USERNAMES` to your exact Roblox username, redeploy, then sign in again.
+
+**Prisma schema changes** — Run `npx prisma db push` after pulling updates.
+
+---
+
+## What you get for $0
+
+- Roblox-verified creator accounts with trust scores
+- Public profiles at `/u/username` with role badges
+- Marketplace (services + jobs) + team finder
+- Direct messages, search, creator dashboard
+- Owner/Admin/Mod moderation panel
+- PostgreSQL (Neon) + HTTPS (Vercel) + media (R2)

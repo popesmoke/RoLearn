@@ -37,7 +37,8 @@ type SidebarProps = {
     role?: string;
   } | null;
   unreadCount?: number;
-  isAdmin?: boolean;
+  isStaff?: boolean;
+  isOwner?: boolean;
 };
 
 function NavLink({
@@ -73,7 +74,7 @@ function NavLink({
   );
 }
 
-export function Sidebar({ user, unreadCount = 0, isAdmin = false }: SidebarProps) {
+export function Sidebar({ user, unreadCount = 0, isStaff = false, isOwner = false }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -111,7 +112,7 @@ export function Sidebar({ user, unreadCount = 0, isAdmin = false }: SidebarProps
           </Link>
         ) : null}
 
-        {isAdmin ? (
+        {isStaff ? (
           <Link
             href="/admin"
             className={cn(
@@ -122,7 +123,7 @@ export function Sidebar({ user, unreadCount = 0, isAdmin = false }: SidebarProps
             )}
           >
             <Icon8 name="studio" size={22} />
-            <span>Admin</span>
+            <span>{isOwner ? "Owner panel" : "Admin"}</span>
           </Link>
         ) : null}
       </nav>

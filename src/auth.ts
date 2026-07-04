@@ -11,6 +11,7 @@ import {
   normalizeUsername,
   robloxEmail,
 } from "@/lib/roblox";
+import { roleFromEnv } from "@/lib/roles";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
@@ -54,6 +55,7 @@ export const authOptions: NextAuthOptions = {
         const email = robloxEmail(String(robloxUser.id));
         const usernameSlug = robloxUser.name.toLowerCase();
         const robloxVerified = hasRobloxVerifiedBadge(profile) || hasRobloxVerifiedBadge(robloxUser);
+        const envRole = roleFromEnv({ username: usernameSlug, robloxUsername: robloxUser.name });
 
         const dbUser = await prisma.user.upsert({
           where: { robloxUserId: String(robloxUser.id) },
@@ -68,12 +70,14 @@ export const authOptions: NextAuthOptions = {
             accountAgeDays: accountAgeDays(profile.created),
             trustLevel: "RISING",
             trustScore: 10,
+            ...(envRole ? { role: envRole } : {}),
           },
           update: {
             displayName: robloxUser.displayName,
             avatarUrl,
             isVerified: robloxVerified,
             accountAgeDays: accountAgeDays(profile.created),
+            ...(envRole ? { role: envRole } : {}),
           },
         });
 
