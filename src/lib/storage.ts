@@ -13,30 +13,6 @@ export type UploadResult = {
   mediaType: "image" | "video" | "pdf";
 };
 
-async function getR2Client() {
-  const accountId = process.env.R2_ACCOUNT_ID;
-  const accessKey = process.env.R2_ACCESS_KEY_ID;
-  const secretKey = process.env.R2_SECRET_ACCESS_KEY;
-  if (!accountId || !accessKey || !secretKey) return null;
-
-  const { S3Client } = await import("@aws-sdk/client-s3");
-  return new S3Client({
-    region: "auto",
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-    credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
-  });
-}
-
-function hasR2Config() {
-  return Boolean(
-    process.env.R2_ACCOUNT_ID &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      process.env.R2_BUCKET_NAME &&
-      process.env.R2_PUBLIC_URL,
-  );
-}
-
 function hasSupabaseStorageConfig() {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
@@ -46,28 +22,6 @@ function mediaTypeFromMime(mime: string): "image" | "video" | "pdf" | null {
   if (ALLOWED_VIDEO.includes(mime)) return "video";
   if (ALLOWED_PDF.includes(mime)) return "pdf";
   return null;
-}
-
-async function uploadToR2(
-  file: File,
-  buffer: Buffer,
-  key: string,
-  mediaType: "image" | "video" | "pdf",
-): Promise<UploadResult> {
-  const r2 = await getR2Client();
-  const bucket = process.env.R2_BUCKET_NAME!;
-  const publicUrl = process.env.R2_PUBLIC_URL!;
-  const { PutObjectCommand } = await import("@aws-sdk/client-s3");
-
-  await r2!.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: buffer,
-      ContentType: file.type,
-    }),
-  );
-  return { url: `${publicUrl.replace(/\/$/, "")}/${key}`, mediaType };
 }
 
 async function uploadToSupabase(
@@ -121,10 +75,6 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
     return uploadToPutPut(file, buffer, mediaType);
   }
 
-  if (hasR2Config()) {
-    return uploadToR2(file, buffer, key, mediaType);
-  }
-
   if (hasSupabaseStorageConfig()) {
     return uploadToSupabase(file, buffer, key, mediaType);
   }
@@ -143,11 +93,6 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
 }
 
 function keyFromPublicUrl(url: string): string | null {
-  const publicUrl = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
-  if (publicUrl && url.startsWith(publicUrl + "/")) {
-    return url.slice(publicUrl.length + 1);
-  }
-
   const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const bucket = process.env.SUPABASE_BUCKET_NAME ?? "uploads";
   const supabasePrefix = `${supabaseUrl}/storage/v1/object/public/${bucket}/`;
@@ -164,24 +109,13 @@ function keyFromPublicUrl(url: string): string | null {
 export async function deleteMediaUrls(urls: string[]): Promise<void> {
   if (urls.length === 0) return;
 
-  const r2 = await getR2Client();
-  const bucket = process.env.R2_BUCKET_NAME;
-  const publicUrl = process.env.R2_PUBLIC_URL;
   const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const supabaseBucket = process.env.SUPABASE_BUCKET_NAME ?? "uploads";
-  const { DeleteObjectCommand } = hasR2Config()
-    ? await import("@aws-sdk/client-s3")
-    : { DeleteObjectCommand: null };
 
   for (const url of urls) {
     try {
       if (url.includes("putput.io")) {
         await deletePutPutFile(url);
-      } else if (r2 && bucket && publicUrl && DeleteObjectCommand) {
-        const key = keyFromPublicUrl(url);
-        if (key) {
-          await r2.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-        }
       } else if (supabaseUrl && hasSupabaseStorageConfig()) {
         const key = keyFromPublicUrl(url);
         if (key) {

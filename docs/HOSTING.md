@@ -37,11 +37,29 @@ Users → https://rolearn.yourname.workers.dev  (Cloudflare Workers)
 
 ---
 
-## Step 1 — Neon database
+## Step 1 — Neon database + Prisma Accelerate
+
+Cloudflare Workers **free tier** has a **3 MB** bundle limit. Prisma's query engine alone exceeds that, so you need **Prisma Accelerate** (free tier, no credit card) to proxy database queries without bundling the engine.
+
+### 1a — Create Neon database
 
 1. [console.neon.tech](https://console.neon.tech) → new project `rolearn`
-2. Copy the **pooled** connection string
-3. Locally: `npx prisma db push`
+2. Copy the **pooled** connection string — this becomes `DIRECT_DATABASE_URL`
+
+### 1b — Enable Prisma Accelerate (required for Cloudflare free tier)
+
+1. [console.prisma.io](https://console.prisma.io) → sign up (free)
+2. Create a project → **Enable Accelerate**
+3. Paste your Neon connection string as the database URL
+4. Copy the **Accelerate connection string** (`prisma://accelerate.prisma-data.net/?api_key=...`)
+
+### 1c — Push schema
+
+```bash
+npx prisma db push
+```
+
+Uses `DIRECT_DATABASE_URL` from your `.env` automatically.
 
 ---
 
@@ -98,7 +116,8 @@ Do **not** use `npm run deploy:cf` as the build command — it builds and deploy
 
 | Variable | Type | Value |
 |---|---|---|
-| `DATABASE_URL` | Encrypted | Neon pooled URL |
+| `DATABASE_URL` | Encrypted | **Prisma Accelerate** URL (`prisma://accelerate...`) |
+| `DIRECT_DATABASE_URL` | Encrypted | Neon pooled URL (for migrations only, optional in Workers) |
 | `AUTH_SECRET` | Encrypted | Random 32+ chars |
 | `NEXTAUTH_SECRET` | Encrypted | Same or another secret |
 | `NEXT_PUBLIC_APP_URL` | Plain | `https://rolearn.yourname.workers.dev` |
@@ -205,9 +224,9 @@ Still supported. Same env vars work on Vercel — just connect GitHub to Vercel 
 
 **Roblox login fails** — `NEXTAUTH_URL` must exactly match your `*.workers.dev` URL.
 
-**Build fails on Cloudflare** — Worker free plan has a 3 MB compressed size limit. If you hit this, upgrade to Workers Paid ($5/mo) for 10 MB.
+**Build fails on Cloudflare — Worker too large** — The free plan has a 3 MB compressed limit. RoLearn uses Prisma Accelerate (`prisma://` URL) to stay under this. Do **not** use a direct `postgresql://` URL as `DATABASE_URL` in production.
 
-**Database errors** — Use Neon's **pooled** URL with `?sslmode=require`.
+**Database errors** — `DATABASE_URL` must be the Prisma Accelerate URL. Use `DIRECT_DATABASE_URL` for `npx prisma db push`.
 
 **PutPut rate limit** — 100 presigns per hour per token. Enough for normal use.
 
@@ -215,7 +234,8 @@ Still supported. Same env vars work on Vercel — just connect GitHub to Vercel 
 
 ## Quick checklist
 
-- [ ] Neon database + `DATABASE_URL` secret
+- [ ] Neon database + Prisma Accelerate enabled
+- [ ] `DATABASE_URL` = Accelerate URL, `DIRECT_DATABASE_URL` = Neon URL
 - [ ] `npx prisma db push` against production
 - [ ] PutPut token generated and saved as `PUTPUT_TOKEN` secret
 - [ ] `AUTH_SECRET` + `NEXTAUTH_SECRET` set
