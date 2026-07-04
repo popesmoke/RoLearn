@@ -1,9 +1,6 @@
-import { PrismaClient } from "@prisma/client/edge";
-import { withAccelerate } from "@prisma/extension-accelerate";
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient({
-  accelerateUrl: process.env.DATABASE_URL,
-}).$extends(withAccelerate());
+const prisma = new PrismaClient();
 
 function deriveUsername(user) {
   if (user.robloxUsername) return user.robloxUsername.toLowerCase();

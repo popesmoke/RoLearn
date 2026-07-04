@@ -1,27 +1,13 @@
-# RoLearn — Deploy on Cloudflare Workers (recommended)
+# RoLearn — Deploy on Prisma Compute (recommended)
 
-Run RoLearn for **$0/month** with **Cloudflare Workers + Neon + PutPut**. No custom domain needed — use `rolearn.<your-subdomain>.workers.dev`.
-
----
-
-## Is Cloudflare the right choice?
-
-| | Cloudflare Workers | Vercel Hobby |
-|---|---|---|
-| **Cold starts** | Fast (edge, always warm) | Slow (1–3s after idle) |
-| **Next.js support** | Via OpenNext adapter | Native |
-| **Free URL** | `*.workers.dev` | `*.vercel.app` |
-| **Credit card** | Not required (Workers free) | Not required |
-| **File uploads** | PutPut (no card) | PutPut / Supabase |
-
-**Verdict:** Moving to Cloudflare is a good decision for RoLearn — especially if Vercel felt slow. PutPut stores files on Cloudflare R2 behind the scenes, so uploads and hosting stay on the same network.
+Run RoLearn with **Prisma Compute + Neon + PutPut**. No credit card required. Your app gets a live `*.prisma.build` URL in **eu-central-1**.
 
 ---
 
 ## Architecture
 
 ```
-Users → https://rolearn.yourname.workers.dev  (Cloudflare Workers)
+Users → https://<your-app>.fra.prisma.build  (Prisma Compute)
               ↓
         Neon PostgreSQL  (database)
               ↓
@@ -30,218 +16,100 @@ Users → https://rolearn.yourname.workers.dev  (Cloudflare Workers)
 
 | Service | Role |
 |---|---|
-| **Cloudflare Workers** | Hosts the Next.js app |
+| **Prisma Compute** | Hosts the Next.js app (standalone) |
 | **Neon** | PostgreSQL database |
 | **PutPut** | File storage (free, no card) |
-| **GitHub** | Code + auto-deploy via Workers Builds |
+| **GitHub** | Code + `prisma-cli app deploy` |
 
 ---
 
-## Step 1 — Neon database + Prisma Accelerate
+## Step 1 — Neon database
 
-Cloudflare Workers **free tier** has a **3 MB** bundle limit. Prisma's query engine alone exceeds that, so you need **Prisma Accelerate** (free tier, no credit card) to proxy database queries without bundling the engine.
-
-### 1a — Create Neon database
-
-1. [console.neon.tech](https://console.neon.tech) → new project `rolearn`
-2. Copy the **pooled** connection string — this becomes `DIRECT_DATABASE_URL`
-
-### 1b — Enable Prisma Accelerate (required for Cloudflare free tier)
-
-1. [console.prisma.io](https://console.prisma.io) → sign up (free)
-2. Create a project → **Enable Accelerate**
-3. Paste your Neon connection string as the database URL
-4. Copy the **Accelerate connection string** (`prisma://accelerate.prisma-data.net/?api_key=...`)
-
-### 1c — Push schema
+1. [console.neon.tech](https://console.neon.tech) → project with pooled connection string
+2. Apply migrations:
 
 ```bash
-npx prisma db push
+DATABASE_URL="postgresql://..." npx prisma migrate deploy
 ```
-
-Uses `DIRECT_DATABASE_URL` from your `.env` automatically.
 
 ---
 
-## Step 2 — PutPut file storage (no credit card)
-
-PutPut handles images, videos, and PDFs. Files are stored on Cloudflare R2 via PutPut — you never touch R2 directly.
-
-### Get your token (do this once)
+## Step 2 — PutPut file storage
 
 ```bash
 curl -X POST https://putput.io/api/v1/auth/guest
 ```
 
-Response:
-
-```json
-{ "token": "pp_xxxxxxxx" }
-```
-
-**Important:**
-- You can only create **3 guest tokens per day** — save the token immediately
-- Guest tokens **expire after 30 days** — generate a new one before expiry
-- The token is a **server secret** — never put it in client code or commit it to GitHub
-
-### Where to put `PUTPUT_TOKEN`
-
-| Environment | Where |
-|---|---|
-| **Local dev** | `.env` → `PUTPUT_TOKEN=pp_...` |
-| **Cloudflare Workers** | Dashboard → Workers → rolearn → **Settings → Variables → Secrets** |
-| **Never** | Browser, GitHub, `NEXT_PUBLIC_*` vars |
-
-In Cloudflare: add as **Encrypted** secret named exactly `PUTPUT_TOKEN`.
+Save the `pp_...` token as `PUTPUT_TOKEN` (server secret only).
 
 ---
 
-## Step 3 — Deploy to Cloudflare Workers
+## Step 3 — Deploy to Prisma Compute
 
-### Option A — GitHub auto-deploy (recommended)
-
-1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create**
-2. Choose **Connect to Git** → select `popesmoke/RoLearn`
-3. Build settings:
-
-| Setting | Value |
-|---|---|
-| Build command | `npm run build:cf` |
-| Deploy command | `npx opennextjs-cloudflare deploy` |
-| Non-production branch deploy | `npx opennextjs-cloudflare upload` |
-
-Do **not** use `npm run deploy:cf` as the build command — it builds and deploys in one step, which conflicts with the separate deploy phase in Workers Builds.
-
-4. Add **environment variables** (Settings → Variables):
-
-| Variable | Type | Value |
-|---|---|---|
-| `DATABASE_URL` | Encrypted | **Prisma Accelerate** URL (`prisma://accelerate...`) |
-| `DIRECT_DATABASE_URL` | Encrypted | Neon pooled URL (for migrations only, optional in Workers) |
-| `AUTH_SECRET` | Encrypted | Random 32+ chars |
-| `NEXTAUTH_SECRET` | Encrypted | Same or another secret |
-| `NEXT_PUBLIC_APP_URL` | Plain | `https://rolearn.yourname.workers.dev` |
-| `NEXTAUTH_URL` | Plain | Same as above |
-| `OWNER_USERNAMES` | Plain | Your Roblox username |
-| `PUTPUT_TOKEN` | **Encrypted** | `pp_...` from Step 2 |
-
-5. Deploy → copy your `*.workers.dev` URL → update the two URL vars → redeploy
-
-### Option B — Deploy from your PC
+### One-time setup
 
 ```bash
-npm install
-npx prisma db push   # once, against Neon
-npm run deploy:cf
+npx @prisma/cli@latest auth login
 ```
 
-First time: `npx wrangler login` to authenticate.
-
-### Push schema to production
+### Wire env vars on the project
 
 ```bash
-# With production DATABASE_URL in .env
-npx prisma db push
+npx @prisma/cli@latest project env update DATABASE_URL="postgresql://..." --role production --project proj_cmr6n9fbe0emi3mceiypxf126
+npx @prisma/cli@latest project env add AUTH_SECRET="..." --role production --project proj_cmr6n9fbe0emi3mceiypxf126
+npx @prisma/cli@latest project env add NEXTAUTH_SECRET="..." --role production --project proj_cmr6n9fbe0emi3mceiypxf126
+npx @prisma/cli@latest project env add OWNER_USERNAMES="yourrobloxusername" --role production --project proj_cmr6n9fbe0emi3mceiypxf126
+npx @prisma/cli@latest project env add PUTPUT_TOKEN="pp_..." --role production --project proj_cmr6n9fbe0emi3mceiypxf126
 ```
 
----
+Set `NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` to your live `*.prisma.build` URL after the first deploy, then redeploy.
 
-## Step 4 — Test
+### Deploy to main
 
-1. Open your `*.workers.dev` URL
-2. Sign in with Roblox
-3. **Studio → Portfolio** → upload an image (should return a `cdn.putput.io` URL)
-4. Navigate between pages — should feel faster than Vercel cold starts
+```bash
+npm run deploy:compute
+# or
+npx @prisma/cli@latest app deploy --project proj_cmr6n9fbe0emi3mceiypxf126 --branch main --prod --yes
+```
+
+Config lives in `prisma.compute.ts` (app name: **rocreators**, framework: **nextjs**).
 
 ---
 
 ## Local development
 
 ```bash
-git clone https://github.com/popesmoke/RoLearn.git
-cd RoLearn
-npm install
 cp .env.example .env
-# Add DATABASE_URL, OWNER_USERNAMES, PUTPUT_TOKEN
-npx prisma db push
+# DATABASE_URL = your Neon pooled URL
+npm install
+npx prisma migrate deploy
 npm run dev
 ```
 
-Without `PUTPUT_TOKEN`, uploads save to `public/uploads/` locally.
+---
 
-Preview in the Workers runtime locally:
+## Production env vars checklist
 
-```bash
-npm run preview:cf
-```
+- [ ] `DATABASE_URL` — Neon pooled PostgreSQL URL
+- [ ] `AUTH_SECRET` + `NEXTAUTH_SECRET`
+- [ ] `NEXTAUTH_URL` + `NEXT_PUBLIC_APP_URL` — your `*.prisma.build` URL
+- [ ] `OWNER_USERNAMES`
+- [ ] `PUTPUT_TOKEN`
 
 ---
 
-## Storage priority
+## Alternative: Cloudflare Workers
 
-RoLearn picks storage automatically:
-
-1. **PutPut** — if `PUTPUT_TOKEN` is set ✅ recommended
-2. Cloudflare R2 — if `R2_*` vars are set (needs credit card)
-3. Supabase — if `SUPABASE_*` vars are set
-4. Local `public/uploads/` — dev only
-
----
-
-## PutPut token — what to do with it
-
-Your `pp_...` token is like a database password:
-
-1. **Add to Cloudflare** as encrypted secret `PUTPUT_TOKEN`
-2. **Add to local `.env`** for development (never commit)
-3. **Do not** expose in the browser or `NEXT_PUBLIC_*` variables
-4. **Do not** call `/auth/guest` again unless the token expired (30 days)
-5. When it expires, generate a new token and update the Cloudflare secret
-
-One token serves your entire app — all users' uploads go through your server using this single token.
-
----
-
-## Optional: custom domain (later)
-
-When you buy a domain:
-
-1. Cloudflare Dashboard → your domain → **DNS**
-2. Workers → rolearn → **Settings → Domains & Routes** → add custom domain
-3. Update `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` → redeploy
-
----
-
-## Alternative: Vercel
-
-Still supported. Same env vars work on Vercel — just connect GitHub to Vercel instead. Vercel is simpler to set up but slower on cold starts.
+Cloudflare Workers free tier has a **3 MB** bundle limit. Prisma Compute avoids that entirely. See git history / `deploy:cf` scripts if you still want Workers + OpenNext.
 
 ---
 
 ## Troubleshooting
 
-**Upload fails** — Check `PUTPUT_TOKEN` is set as an encrypted secret in Cloudflare. Token may have expired (30 days).
+**Roblox login fails** — `NEXTAUTH_URL` must exactly match your live URL.
 
-**Roblox login fails** — `NEXTAUTH_URL` must exactly match your `*.workers.dev` URL.
+**Database errors** — confirm `DATABASE_URL` on the Prisma Compute project matches your Neon pooled URL.
 
-**Build fails on Cloudflare — Worker too large** — The free plan has a 3 MB compressed limit. RoLearn uses Prisma Accelerate (`prisma://` URL) to stay under this. Do **not** use a direct `postgresql://` URL as `DATABASE_URL` in production.
+**Build fails on Windows** — `prisma.compute.ts` uses `scripts/build-compute.cmd` automatically on Windows.
 
-**Database errors** — `DATABASE_URL` must be the Prisma Accelerate URL. Use `DIRECT_DATABASE_URL` for `npx prisma db push`.
-
-**PutPut rate limit** — 100 presigns per hour per token. Enough for normal use.
-
----
-
-## Quick checklist
-
-- [ ] Neon database + Prisma Accelerate enabled
-- [ ] `DATABASE_URL` = Accelerate URL, `DIRECT_DATABASE_URL` = Neon URL
-- [ ] `npx prisma db push` against production
-- [ ] PutPut token generated and saved as `PUTPUT_TOKEN` secret
-- [ ] `AUTH_SECRET` + `NEXTAUTH_SECRET` set
-- [ ] `NEXT_PUBLIC_APP_URL` + `NEXTAUTH_URL` = your workers.dev URL
-- [ ] `OWNER_USERNAMES` = your Roblox username
-- [ ] Deployed via GitHub or `npm run deploy:cf`
-- [ ] Tested image upload
-
-See also: [CLOUDFLARE.md](./CLOUDFLARE.md) for DNS/R2 details when you get a domain or credit card.
+**Env var changes don't apply** — vars are baked at deploy time; redeploy after updating them.

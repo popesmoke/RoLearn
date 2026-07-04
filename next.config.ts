@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
+const isStandalone =
+  process.env.DOCKER_BUILD === "1" || process.env.PRISMA_COMPUTE === "1";
 
 const nextConfig: NextConfig = {
-  // Standalone output is for Docker/Railway only — set DOCKER_BUILD=1 there.
-  ...(process.env.DOCKER_BUILD === "1" ? { output: "standalone" as const } : {}),
+  ...(isStandalone ? { output: "standalone" as const } : {}),
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "tr.rbxcdn.com" },
@@ -18,4 +19,8 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-initOpenNextCloudflareForDev();
+if (process.env.NODE_ENV === "development" && process.env.PRISMA_COMPUTE !== "1") {
+  void import("@opennextjs/cloudflare").then(({ initOpenNextCloudflareForDev }) => {
+    initOpenNextCloudflareForDev();
+  });
+}
