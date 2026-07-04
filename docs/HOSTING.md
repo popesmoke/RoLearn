@@ -46,10 +46,15 @@ npx prisma db push
 
 ### 2. Media storage — Cloudflare R2 (free)
 
+Full step-by-step guide: **[docs/CLOUDFLARE.md](./CLOUDFLARE.md)**
+
+Quick version:
+
 1. [dash.cloudflare.com](https://dash.cloudflare.com) → **R2** → Create bucket `rolearn-uploads`
-2. Enable public access or attach a custom domain
+2. Enable public access (r2.dev subdomain) or attach a custom domain
 3. Create API token with **Object Read & Write**
-4. Note your account ID from the R2 overview page
+4. Note your **Account ID** from the R2 overview page
+5. Add all `R2_*` env vars to Vercel (see CLOUDFLARE.md)
 
 ### 3. Deploy app — Vercel (free)
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/app-shell";
@@ -18,6 +19,7 @@ import { getDisplayName, getHandle } from "@/lib/user-display";
 import { getCurrentUser } from "@/lib/user";
 import { RoleBadge } from "@/components/ui/role-badge";
 import { isStaffRole } from "@/lib/roles";
+import { courseFormatLabel } from "@/lib/courses";
 import { getFollowStats, isFollowing } from "@/app/actions/follows";
 
 export const dynamic = "force-dynamic";
@@ -67,11 +69,17 @@ export default async function ProfilePage({ params }: PageProps) {
   const displayName = getDisplayName(user);
   const isSelf = viewer?.id === user.id;
 
-  const [posts, activity, followStats, following] = await Promise.all([
+  const [posts, activity, followStats, following, userCourses] = await Promise.all([
     fetchUserPosts(user.id, 10),
     fetchUserActivity(user.id),
     getFollowStats(user.id),
     viewer && !isSelf ? isFollowing(viewer.id, user.id) : Promise.resolve(false),
+    prisma.courseInstructor.findMany({
+      where: { userId: user.id },
+      include: { course: true },
+      orderBy: { course: { createdAt: "desc" } },
+      take: 6,
+    }),
   ]);
 
   const responseLabel = responseRateLabel(user.responseCount, user.responseTotalMin);
@@ -160,19 +168,72 @@ export default async function ProfilePage({ params }: PageProps) {
         {user.portfolioItems.length > 0 ? (
           <section className="mt-6">
             <h2 className="mb-3 text-lg font-bold">Portfolio</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {user.portfolioItems.map((item) => (
-                <div key={item.id} className="surface-panel p-4">
-                  <p className="font-semibold">{item.title}</p>
-                  {item.description ? (
-                    <p className="mt-1 text-sm text-muted line-clamp-2">{item.description}</p>
+                <div key={item.id} className="surface-panel overflow-hidden">
+                  {item.mediaUrls.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-0.5 bg-border">
+                      {item.mediaUrls.slice(0, 4).map((url) => (
+                        <Image
+                          key={url}
+                          src={url}
+                          alt={item.title}
+                          width={320}
+                          height={180}
+                          className="aspect-video w-full object-cover"
+                          unoptimized
+                        />
+                      ))}
+                    </div>
                   ) : null}
-                  {item.ownershipVerified ? (
-                    <Badge variant="success" className="mt-2">
-                      Verified ownership
-                    </Badge>
-                  ) : null}
+                  <div className="p-4">
+                    <p className="font-semibold">{item.title}</p>
+                    {item.description ? (
+                      <p className="mt-1 text-sm text-muted line-clamp-3">{item.description}</p>
+                    ) : null}
+                    {item.ownershipVerified ? (
+                      <Badge variant="success" className="mt-2">
+                        Verified ownership
+                      </Badge>
+                    ) : null}
+                  </div>
                 </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {userCourses.length > 0 ? (
+          <section className="mt-6">
+            <h2 className="mb-3 text-lg font-bold">Courses</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {userCourses.map(({ course }) => (
+                <Link
+                  key={course.id}
+                  href={`/courses/${course.id}`}
+                  className="surface-panel flex gap-3 p-4 transition hover:border-accent/30"
+                >
+                  {course.coverUrl ? (
+                    <Image
+                      src={course.coverUrl}
+                      alt=""
+                      width={80}
+                      height={48}
+                      className="h-12 w-20 shrink-0 rounded-lg object-cover"
+                      unoptimized
+                    />
+                  ) : null}
+                  <div className="min-w-0">
+                    <p className="font-semibold">{course.title}</p>
+                    <p className="mt-1 text-sm text-muted line-clamp-2">
+                      {course.summary ?? course.description}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <Badge variant="accent">{courseFormatLabel(course.format)}</Badge>
+                      <Badge>{course.isPaid ? `$${course.priceCents / 100}` : "Free"}</Badge>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           </section>

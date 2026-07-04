@@ -8,9 +8,17 @@ type MediaUploaderProps = {
   urls: string[];
   onChange: (urls: string[]) => void;
   max?: number;
+  label?: string;
+  hint?: string;
 };
 
-export function MediaUploader({ urls, onChange, max = 4 }: MediaUploaderProps) {
+export function MediaUploader({
+  urls,
+  onChange,
+  max = 4,
+  label = "Photos & videos (optional)",
+  hint = "JPG, PNG, GIF, WebP, MP4, WebM · max 25 MB each",
+}: MediaUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
@@ -58,7 +66,7 @@ export function MediaUploader({ urls, onChange, max = 4 }: MediaUploaderProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-muted">Photos & videos (optional)</p>
+      <p className="text-sm font-medium text-muted">{label}</p>
 
       {urls.length > 0 ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -119,7 +127,7 @@ export function MediaUploader({ urls, onChange, max = 4 }: MediaUploaderProps) {
       ) : null}
 
       {error ? <p className="text-xs text-red-400">{error}</p> : null}
-      <p className="text-xs text-subtle">JPG, PNG, GIF, WebP, MP4, WebM · max 25 MB each</p>
+      <p className="text-xs text-subtle">{hint}</p>
     </div>
   );
 }

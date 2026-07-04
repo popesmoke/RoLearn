@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { checkIsOwner, checkIsStaff, getCurrentUser } from "@/lib/user";
-import { prisma } from "@/lib/prisma";
+import { Suspense } from "react";
+import { checkIsOwner, checkIsStaff, getCurrentUser, getUnreadCount } from "@/lib/user";
 import { Sidebar } from "./sidebar";
 import { RightRail } from "./right-rail";
 import { MobileNav } from "./mobile-nav";
@@ -13,6 +13,17 @@ type AppShellProps = {
   headerAction?: React.ReactNode;
 };
 
+function RightRailSkeleton() {
+  return (
+    <aside className="hidden animate-pulse px-4 py-4 lg:block">
+      <div className="sticky top-4 space-y-4">
+        <div className="surface-panel h-40 rounded-xl" />
+        <div className="surface-panel h-32 rounded-xl" />
+      </div>
+    </aside>
+  );
+}
+
 export async function AppShell({
   children,
   title,
@@ -21,9 +32,7 @@ export async function AppShell({
   headerAction,
 }: AppShellProps) {
   const user = await getCurrentUser();
-  const unreadCount = user
-    ? await prisma.notification.count({ where: { userId: user.id, readAt: null } })
-    : 0;
+  const unreadCount = user ? await getUnreadCount(user.id) : 0;
   const isStaff = user ? checkIsStaff(user) : false;
   const isOwner = user ? checkIsOwner(user) : false;
 
@@ -66,7 +75,13 @@ export async function AppShell({
           </div>
         </footer>
       </div>
-      {showRightRail ? <RightRail /> : <div className="hidden lg:block" />}
+      {showRightRail ? (
+        <Suspense fallback={<RightRailSkeleton />}>
+          <RightRail />
+        </Suspense>
+      ) : (
+        <div className="hidden lg:block" />
+      )}
       <MobileNav isStaff={isStaff} isOwner={isOwner} />
     </div>
   );

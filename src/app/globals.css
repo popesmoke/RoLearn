@@ -117,6 +117,15 @@ body {
   box-shadow: 0 0 40px rgb(0 180 255 / 15%);
 }
 
+@keyframes nav-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;

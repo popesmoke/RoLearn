@@ -6,10 +6,11 @@ import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
 const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const ALLOWED_VIDEO = ["video/mp4", "video/webm", "video/quicktime"];
+const ALLOWED_PDF = ["application/pdf"];
 
 export type UploadResult = {
   url: string;
-  mediaType: "image" | "video";
+  mediaType: "image" | "video" | "pdf";
 };
 
 function getR2Client() {
@@ -25,9 +26,10 @@ function getR2Client() {
   });
 }
 
-function mediaTypeFromMime(mime: string): "image" | "video" | null {
+function mediaTypeFromMime(mime: string): "image" | "video" | "pdf" | null {
   if (ALLOWED_IMAGE.includes(mime)) return "image";
   if (ALLOWED_VIDEO.includes(mime)) return "video";
+  if (ALLOWED_PDF.includes(mime)) return "pdf";
   return null;
 }
 
@@ -38,10 +40,12 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
 
   const mediaType = mediaTypeFromMime(file.type);
   if (!mediaType) {
-    throw new Error("Only images (JPG, PNG, GIF, WebP) and videos (MP4, WebM) are allowed.");
+    throw new Error("Only images, videos, and PDFs are allowed.");
   }
 
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? (mediaType === "image" ? "jpg" : "mp4");
+  const ext =
+    file.name.split(".").pop()?.toLowerCase() ??
+    (mediaType === "image" ? "jpg" : mediaType === "video" ? "mp4" : "pdf");
   const key = `uploads/${randomUUID()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 

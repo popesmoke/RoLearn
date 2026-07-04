@@ -1,13 +1,13 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { UserRole } from "@prisma/client";
+import { cache } from "react";
 import { authOptions } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { checkIsAdmin, checkIsOwner, checkIsStaff } from "@/lib/roles";
 
 export { checkIsAdmin, checkIsOwner, checkIsStaff } from "@/lib/roles";
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return null;
@@ -16,7 +16,11 @@ export async function getCurrentUser() {
   return prisma.user.findUnique({
     where: { id: session.user.id },
   });
-}
+});
+
+export const getUnreadCount = cache(async (userId: string) => {
+  return prisma.notification.count({ where: { userId, readAt: null } });
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();

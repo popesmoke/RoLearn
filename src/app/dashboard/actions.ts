@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { SkillCategory } from "@prisma/client";
+import { CourseFormat, SkillCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { skillCategories } from "@/lib/constants";
@@ -23,13 +23,31 @@ function toInt(value: FormDataEntryValue | null): number | null {
   return parsed;
 }
 
-function revalidateUserPaths(user: { username?: string | null }) {
+function parseMediaUrls(raw: FormDataEntryValue | null): string[] {
+  const str = String(raw ?? "").trim();
+  if (!str) return [];
+  try {
+    const parsed = JSON.parse(str) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((u) => typeof u === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function safeCourseFormat(value: FormDataEntryValue | null): CourseFormat {
+  const raw = String(value ?? "WRITTEN");
+  if (raw === "PDF" || raw === "MIXED") return raw;
+  return CourseFormat.WRITTEN;
+}
+
+function revalidateUserPaths(user: { username?: string | null; robloxUsername?: string | null }) {
   revalidatePath("/dashboard");
   revalidatePath("/explore");
   revalidatePath("/marketplace");
   revalidatePath("/teamfinder");
   revalidatePath("/search");
-  if (user.username) {
+  revalidatePath("/courses");
+  if (user.username || user.robloxUsername) {
     revalidatePath(profilePath(user));
   }
 }
@@ -69,30 +87,54 @@ export async function addSkill(formData: FormData) {
 
 export async function createPortfolioItem(formData: FormData) {
   const user = await requireUser();
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) return { error: "Title is required." };
+
   await prisma.portfolioItem.create({
     data: {
       userId: user.id,
-      title: String(formData.get("title") ?? "").trim(),
+      title,
       description: String(formData.get("description") ?? "").trim() || null,
       experienceId: String(formData.get("experienceId") ?? "").trim() || null,
       groupId: String(formData.get("groupId") ?? "").trim() || null,
       assetId: String(formData.get("assetId") ?? "").trim() || null,
+      mediaUrls: parseMediaUrls(formData.get("mediaUrls")),
     },
   });
   revalidateUserPaths(user);
+  return { success: true };
 }
 
 export async function createCourse(formData: FormData) {
   const user = await requireUser();
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
+  const summary = String(formData.get("summary") ?? "").trim() || null;
+  const format = safeCourseFormat(formData.get("format"));
+  const content = String(formData.get("content") ?? "").trim() || null;
+  const pdfUrl = String(formData.get("pdfUrl") ?? "").trim() || null;
+  const coverUrl = String(formData.get("coverUrl") ?? "").trim() || null;
   const isPaid = formData.get("isPaid") === "on";
   const priceCents = isPaid ? (toInt(formData.get("priceUsd")) ?? 0) * 100 : 0;
 
-  await prisma.course.create({
+  if (!title || !description) return { error: "Title and description are required." };
+  if (format === CourseFormat.PDF && !pdfUrl) {
+    return { error: "Upload a PDF or switch to written format." };
+  }
+  if (format === CourseFormat.WRITTEN && !content) {
+    return { error: "Add written content or switch to PDF format." };
+  }
+
+  const course = await prisma.course.create({
     data: {
       title,
+      summary,
       description,
+      format,
+      content,
+      pdfUrl,
+      coverUrl,
+      mediaUrls: parseMediaUrls(formData.get("mediaUrls")),
       isPaid,
       priceCents,
       instructors: {
@@ -103,7 +145,10 @@ export async function createCourse(formData: FormData) {
       },
     },
   });
+
   revalidateUserPaths(user);
+  revalidatePath(`/courses/${course.id}`);
+  return { success: true, courseId: course.id };
 }
 
 export async function createService(formData: FormData) {

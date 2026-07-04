@@ -18,12 +18,13 @@ import { fetchUserPosts, serializeFeed } from "@/lib/feed";
 import { fetchIncomingApplications } from "@/lib/applications";
 import { CreatorAnalytics } from "@/components/analytics/creator-analytics";
 import { getCreatorAnalytics } from "@/lib/analytics";
+import { courseFormatLabel } from "@/lib/courses";
 import { getHandle, profilePath } from "@/lib/user-display";
+import { PortfolioForm, PortfolioItemCard } from "@/components/portfolio/portfolio-form";
+import { CourseForm } from "@/components/courses/course-form";
 import {
   addSkill,
-  createCourse,
   createJob,
-  createPortfolioItem,
   createService,
   createTeamPost,
   updateProfile,
@@ -48,22 +49,58 @@ const tabs: { id: string; label: string; icon: IconName }[] = [
 export default async function DashboardPage({ searchParams }: PageProps) {
   const { tab = "profile" } = await searchParams;
   const user = await requireUser();
-
-  const [skills, portfolioItems, courses, services, jobs, teamPosts] = await Promise.all([
-    prisma.userSkill.findMany({ where: { userId: user.id }, orderBy: { category: "asc" } }),
-    prisma.portfolioItem.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
-    prisma.courseInstructor.findMany({
-      where: { userId: user.id },
-      include: { course: true },
-      orderBy: { course: { createdAt: "desc" } },
-      take: 8,
-    }),
-    prisma.serviceOffer.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
-    prisma.jobPost.findMany({ where: { authorId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
-    prisma.teamPost.findMany({ where: { authorId: user.id }, orderBy: { createdAt: "desc" }, take: 8 }),
-  ]);
-
   const handle = getHandle(user);
+
+  const skills =
+    tab === "profile"
+      ? await prisma.userSkill.findMany({ where: { userId: user.id }, orderBy: { category: "asc" } })
+      : [];
+
+  const portfolioItems =
+    tab === "portfolio"
+      ? await prisma.portfolioItem.findMany({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        })
+      : [];
+
+  const courses =
+    tab === "courses"
+      ? await prisma.courseInstructor.findMany({
+          where: { userId: user.id },
+          include: { course: true },
+          orderBy: { course: { createdAt: "desc" } },
+          take: 8,
+        })
+      : [];
+
+  const services =
+    tab === "market"
+      ? await prisma.serviceOffer.findMany({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        })
+      : [];
+
+  const jobs =
+    tab === "market"
+      ? await prisma.jobPost.findMany({
+          where: { authorId: user.id },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        })
+      : [];
+
+  const teamPosts =
+    tab === "recruit"
+      ? await prisma.teamPost.findMany({
+          where: { authorId: user.id },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        })
+      : [];
 
   let userPosts: Awaited<ReturnType<typeof fetchUserPosts>> = [];
   let incomingApplications: Awaited<ReturnType<typeof fetchIncomingApplications>> = [];
@@ -85,12 +122,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       <div className="border-b border-border">
         <div className="px-4 py-6">
           <div className="flex items-start gap-4">
-            <Avatar
-              src={user.avatarUrl}
-              name={user.displayName}
-              email={user.email}
-              size="lg"
-            />
+            <Avatar src={user.avatarUrl} name={user.displayName} email={user.email} size="lg" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold">{user.displayName ?? handle}</h2>
@@ -126,6 +158,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <Link
               key={item.id}
               href={`/dashboard?tab=${item.id}`}
+              prefetch
               className={cn(
                 "flex min-w-[100px] flex-1 items-center justify-center gap-2 whitespace-nowrap py-3.5 text-center text-[15px] font-medium transition hover:bg-surface-hover",
                 tab === item.id ? "tab-active font-bold" : "text-muted",
@@ -205,7 +238,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <p className="text-sm text-muted">
               Want more reach? See{" "}
               <Link href="/monetization" className="text-accent hover:underline">
-                featured listing options
+                Pro Studio benefits
               </Link>
               .
             </p>
@@ -217,18 +250,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <Card>
               <CardHeader>
                 <h3 className="font-bold">Add portfolio project</h3>
+                <p className="text-sm text-muted">
+                  Show screenshots of your builds, UI, maps, or VFX. This is your visual proof of work.
+                </p>
               </CardHeader>
               <CardBody>
-                <form action={createPortfolioItem} className="space-y-4">
-                  <Input name="title" label="Project title" required placeholder="Obby framework, UI kit, etc." />
-                  <Textarea name="description" label="Description" placeholder="What did you ship?" />
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <Input name="experienceId" label="Experience ID" placeholder="Optional" />
-                    <Input name="groupId" label="Group ID" placeholder="Optional" />
-                    <Input name="assetId" label="Asset ID" placeholder="Optional" />
-                  </div>
-                  <Button type="submit">Publish project</Button>
-                </form>
+                <PortfolioForm />
               </CardBody>
             </Card>
 
@@ -241,15 +268,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   <p className="text-sm text-muted">No portfolio items yet.</p>
                 ) : (
                   portfolioItems.map((item) => (
-                    <div key={item.id} className="rounded-xl border border-border bg-background/50 p-3">
-                      <p className="font-semibold">{item.title}</p>
-                      {item.description ? (
-                        <p className="mt-1 text-sm text-muted">{item.description}</p>
-                      ) : null}
-                      {item.ownershipVerified ? (
-                        <Badge variant="success" className="mt-2">Verified</Badge>
-                      ) : null}
-                    </div>
+                    <PortfolioItemCard key={item.id} {...item} />
                   ))
                 )}
               </CardBody>
@@ -262,18 +281,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <Card>
               <CardHeader>
                 <h3 className="font-bold">Create course</h3>
+                <p className="text-sm text-muted">
+                  Publish a written guide (like a book), upload a PDF, or both. Explain clearly what students will learn.
+                </p>
               </CardHeader>
               <CardBody>
-                <form action={createCourse} className="space-y-4">
-                  <Input name="title" label="Course title" required />
-                  <Textarea name="description" label="Description" required />
-                  <label className="flex items-center gap-2 text-sm text-muted">
-                    <input type="checkbox" name="isPaid" className="rounded border-border" />
-                    Paid course
-                  </label>
-                  <Input name="priceUsd" label="Price (USD)" type="number" min="0" placeholder="0" />
-                  <Button type="submit">Publish course</Button>
-                </form>
+                <CourseForm />
               </CardBody>
             </Card>
 
@@ -286,13 +299,20 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   <p className="text-sm text-muted">No courses published yet.</p>
                 ) : (
                   courses.map((item) => (
-                    <div key={item.id} className="rounded-xl border border-border bg-background/50 p-3">
+                    <Link
+                      key={item.id}
+                      href={`/courses/${item.course.id}`}
+                      className="block rounded-xl border border-border bg-background/50 p-3 transition hover:border-accent/30"
+                    >
                       <p className="font-semibold">{item.course.title}</p>
-                      <p className="mt-1 text-sm text-muted line-clamp-2">{item.course.description}</p>
-                      <Badge className="mt-2">
-                        {item.course.isPaid ? `$${item.course.priceCents / 100}` : "Free"}
-                      </Badge>
-                    </div>
+                      <p className="mt-1 text-sm text-muted line-clamp-2">
+                        {item.course.summary ?? item.course.description}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Badge variant="accent">{courseFormatLabel(item.course.format)}</Badge>
+                        <Badge>{item.course.isPaid ? `$${item.course.priceCents / 100}` : "Free"}</Badge>
+                      </div>
+                    </Link>
                   ))
                 )}
               </CardBody>
@@ -312,50 +332,50 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </ButtonLink>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <h3 className="font-bold">Offer a service</h3>
-              </CardHeader>
-              <CardBody>
-                <form action={createService} className="space-y-4">
-                  <Input name="title" label="Service title" required />
-                  <Select name="category" label="Category" options={skillCategories} />
-                  <Textarea name="description" label="Details" required />
-                  <Input name="basePriceUsd" label="Starting price (USD)" type="number" min="0" />
-                  <Button type="submit">Publish service</Button>
-                </form>
-                <div className="mt-5 space-y-2">
-                  {services.map((item) => (
-                    <p key={item.id} className="text-sm text-muted">· {item.title}</p>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <h3 className="font-bold">Post a job</h3>
-              </CardHeader>
-              <CardBody>
-                <form action={createJob} className="space-y-4">
-                  <Input name="title" label="Job title" required />
-                  <Textarea name="description" label="Scope" required />
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Input name="budgetMinUsd" label="Min budget (USD)" type="number" min="0" />
-                    <Input name="budgetMaxUsd" label="Max budget (USD)" type="number" min="0" />
+              <Card>
+                <CardHeader>
+                  <h3 className="font-bold">Offer a service</h3>
+                </CardHeader>
+                <CardBody>
+                  <form action={createService} className="space-y-4">
+                    <Input name="title" label="Service title" required />
+                    <Select name="category" label="Category" options={skillCategories} />
+                    <Textarea name="description" label="Details" required />
+                    <Input name="basePriceUsd" label="Starting price (USD)" type="number" min="0" />
+                    <Button type="submit">Publish service</Button>
+                  </form>
+                  <div className="mt-5 space-y-2">
+                    {services.map((item) => (
+                      <p key={item.id} className="text-sm text-muted">· {item.title}</p>
+                    ))}
                   </div>
-                  <Button type="submit">Post job</Button>
-                </form>
-                <div className="mt-5 space-y-2">
-                  {jobs.map((item) => (
-                    <p key={item.id} className="text-sm text-muted">
-                      · {item.title} {item.isOpen ? "" : "(closed)"}
-                    </p>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-          </div>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <h3 className="font-bold">Post a job</h3>
+                </CardHeader>
+                <CardBody>
+                  <form action={createJob} className="space-y-4">
+                    <Input name="title" label="Job title" required />
+                    <Textarea name="description" label="Scope" required />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Input name="budgetMinUsd" label="Min budget (USD)" type="number" min="0" />
+                      <Input name="budgetMaxUsd" label="Max budget (USD)" type="number" min="0" />
+                    </div>
+                    <Button type="submit">Post job</Button>
+                  </form>
+                  <div className="mt-5 space-y-2">
+                    {jobs.map((item) => (
+                      <p key={item.id} className="text-sm text-muted">
+                        · {item.title} {item.isOpen ? "" : "(closed)"}
+                      </p>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
           </div>
         ) : null}
 
@@ -371,41 +391,41 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </ButtonLink>
             </div>
             <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <Card>
-              <CardHeader>
-                <h3 className="font-bold">Recruit for your team</h3>
-              </CardHeader>
-              <CardBody>
-                <form action={createTeamPost} className="space-y-4">
-                  <Input name="title" label="Post title" required placeholder="Looking for lead scripter" />
-                  <Select name="neededRole" label="Role needed" options={skillCategories} />
-                  <Textarea name="description" label="What you're building" required />
-                  <Button type="submit">Publish team post</Button>
-                </form>
-              </CardBody>
-            </Card>
+              <Card>
+                <CardHeader>
+                  <h3 className="font-bold">Recruit for your team</h3>
+                </CardHeader>
+                <CardBody>
+                  <form action={createTeamPost} className="space-y-4">
+                    <Input name="title" label="Post title" required placeholder="Looking for lead scripter" />
+                    <Select name="neededRole" label="Role needed" options={skillCategories} />
+                    <Textarea name="description" label="What you're building" required />
+                    <Button type="submit">Publish team post</Button>
+                  </form>
+                </CardBody>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <h3 className="font-bold">Your team posts</h3>
-              </CardHeader>
-              <CardBody className="space-y-3">
-                {teamPosts.length === 0 ? (
-                  <p className="text-sm text-muted">No team posts yet.</p>
-                ) : (
-                  teamPosts.map((post) => (
-                    <div key={post.id} className="rounded-xl border border-border bg-background/50 p-3">
-                      <p className="font-semibold">{post.title}</p>
-                      <p className="mt-1 text-sm text-muted">{formatCategory(post.neededRole)}</p>
-                      <Badge className="mt-2" variant={post.isOpen ? "success" : "default"}>
-                        {post.isOpen ? "Open" : "Closed"}
-                      </Badge>
-                    </div>
-                  ))
-                )}
-              </CardBody>
-            </Card>
-          </div>
+              <Card>
+                <CardHeader>
+                  <h3 className="font-bold">Your team posts</h3>
+                </CardHeader>
+                <CardBody className="space-y-3">
+                  {teamPosts.length === 0 ? (
+                    <p className="text-sm text-muted">No team posts yet.</p>
+                  ) : (
+                    teamPosts.map((post) => (
+                      <div key={post.id} className="rounded-xl border border-border bg-background/50 p-3">
+                        <p className="font-semibold">{post.title}</p>
+                        <p className="mt-1 text-sm text-muted">{formatCategory(post.neededRole)}</p>
+                        <Badge className="mt-2" variant={post.isOpen ? "success" : "default"}>
+                          {post.isOpen ? "Open" : "Closed"}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </CardBody>
+              </Card>
+            </div>
           </div>
         ) : null}
       </div>

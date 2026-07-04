@@ -120,6 +120,12 @@ model UserSkill {
   @@unique([userId, category])
 }
 
+enum CourseFormat {
+  WRITTEN
+  PDF
+  MIXED
+}
+
 model PortfolioItem {
   id                String   @id @default(cuid())
   userId            String
@@ -136,13 +142,20 @@ model PortfolioItem {
 }
 
 model Course {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
+  summary     String?
   description String
-  isPaid      Boolean  @default(false)
-  priceCents  Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  format      CourseFormat @default(WRITTEN)
+  coverUrl    String?
+  pdfUrl      String?
+  content     String?
+  mediaUrls   String[]     @default([])
+  isPaid      Boolean      @default(false)
+  priceCents  Int          @default(0)
+  isPublished Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   instructors CourseInstructor[]
 }

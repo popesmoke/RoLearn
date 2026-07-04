@@ -13,6 +13,7 @@ import { getHandle, profilePath } from "@/lib/user-display";
 const primaryNav: { href: string; label: string; icon: IconName }[] = [
   { href: "/explore", label: "Live feed", icon: "live" },
   { href: "/compose", label: "Create", icon: "compose" },
+  { href: "/courses", label: "Courses", icon: "star" },
   { href: "/search", label: "Search", icon: "search" },
   { href: "/marketplace", label: "Market", icon: "marketplace" },
   { href: "/teamfinder", label: "Teams", icon: "teams" },
@@ -56,6 +57,7 @@ function NavLink({
   return (
     <Link
       href={item.href}
+      prefetch
       className={cn(
         "flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] transition",
         active
