@@ -1,7 +1,6 @@
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { deletePutPutFile, hasPutPutConfig, uploadToPutPut } from "@/lib/putput";
 
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -14,12 +13,13 @@ export type UploadResult = {
   mediaType: "image" | "video" | "pdf";
 };
 
-function getR2Client() {
+async function getR2Client() {
   const accountId = process.env.R2_ACCOUNT_ID;
   const accessKey = process.env.R2_ACCESS_KEY_ID;
   const secretKey = process.env.R2_SECRET_ACCESS_KEY;
   if (!accountId || !accessKey || !secretKey) return null;
 
+  const { S3Client } = await import("@aws-sdk/client-s3");
   return new S3Client({
     region: "auto",
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
@@ -54,9 +54,10 @@ async function uploadToR2(
   key: string,
   mediaType: "image" | "video" | "pdf",
 ): Promise<UploadResult> {
-  const r2 = getR2Client();
+  const r2 = await getR2Client();
   const bucket = process.env.R2_BUCKET_NAME!;
   const publicUrl = process.env.R2_PUBLIC_URL!;
+  const { PutObjectCommand } = await import("@aws-sdk/client-s3");
 
   await r2!.send(
     new PutObjectCommand({
@@ -163,17 +164,20 @@ function keyFromPublicUrl(url: string): string | null {
 export async function deleteMediaUrls(urls: string[]): Promise<void> {
   if (urls.length === 0) return;
 
-  const r2 = getR2Client();
+  const r2 = await getR2Client();
   const bucket = process.env.R2_BUCKET_NAME;
   const publicUrl = process.env.R2_PUBLIC_URL;
   const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const supabaseBucket = process.env.SUPABASE_BUCKET_NAME ?? "uploads";
+  const { DeleteObjectCommand } = hasR2Config()
+    ? await import("@aws-sdk/client-s3")
+    : { DeleteObjectCommand: null };
 
   for (const url of urls) {
     try {
       if (url.includes("putput.io")) {
         await deletePutPutFile(url);
-      } else if (r2 && bucket && publicUrl) {
+      } else if (r2 && bucket && publicUrl && DeleteObjectCommand) {
         const key = keyFromPublicUrl(url);
         if (key) {
           await r2.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
