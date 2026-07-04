@@ -1,113 +1,212 @@
-# RoLearn — Deployment Guide (Vercel + Cloudflare + Neon)
+# RoLearn — Deploy on Vercel (no domain needed)
 
-Run RoLearn for **$0/month** using Roblox bio verification, free PostgreSQL, and Cloudflare for DNS + media storage.
-
-## Recommended architecture
-
-```
-Users → Cloudflare DNS (optional CDN/proxy)
-      → Vercel (Next.js app — pages, API, auth)
-      → Neon PostgreSQL (database)
-      → Cloudflare R2 (photo/video uploads)
-```
-
-| Service | What it hosts | Why this one |
-|---|---|---|
-| **[Vercel](https://vercel.com)** | The website (Next.js) | Best free Next.js hosting, auto-deploy from GitHub |
-| **[Neon](https://neon.tech)** | PostgreSQL database | Best free Postgres — 512 MB, serverless, no sleep |
-| **[Cloudflare](https://dash.cloudflare.com)** | DNS + R2 file storage | Free DNS, CDN, DDoS protection; R2 has 10 GB free |
-| **[GitHub](https://github.com)** | Source code + CI | Free, triggers Vercel deploys on push |
-
-### Why not Supabase?
-
-Neon is simpler for RoLearn — you only need PostgreSQL. Supabase adds auth/storage you don't need (RoLearn has its own Roblox auth). Neon free tier: **512 MB storage**, branching, no project pause on free tier.
-
-### Why Vercel + Cloudflare together?
-
-- **Vercel** runs your Next.js app (the actual site)
-- **Cloudflare** sits in front for custom domain DNS, SSL, and caching (optional but recommended for production)
-- **Cloudflare R2** stores uploaded images/videos (Vercel doesn't provide file storage)
-
-You do **not** host the app on Cloudflare Pages unless you want to — Vercel is easier for this Next.js setup.
+Run RoLearn for **$0/month** with just **Vercel + Neon**. You do **not** need to buy a domain — use the free `your-app.vercel.app` URL.
 
 ---
 
-## Step-by-step setup
+## What you need
 
-### 1. Database — Neon (free)
+| Service | What it does | Credit card? |
+|---|---|---|
+| **[Vercel](https://vercel.com)** | Hosts the website | No (Hobby plan) |
+| **[Neon](https://neon.tech)** | PostgreSQL database | No |
+| **[Supabase](https://supabase.com)** | File storage (images, PDFs) | **No** |
+| **[GitHub](https://github.com)** | Code + auto-deploy | No |
 
-1. Go to [console.neon.tech](https://console.neon.tech) → create project `rolearn`
-2. Copy the **pooled** connection string
-3. Save it — you'll add it to Vercel env vars
+You do **not** need Cloudflare or a custom domain to launch.
+
+---
+
+## Architecture (minimal)
+
+```
+Users → https://your-app.vercel.app  (Vercel)
+              ↓
+        Neon PostgreSQL  (database)
+              ↓
+        Supabase Storage  (uploads — optional but recommended)
+```
+
+---
+
+## Step 1 — Neon database (5 min)
+
+1. Go to [console.neon.tech](https://console.neon.tech) and sign up (GitHub login works)
+2. **New Project** → name it `rolearn`
+3. Copy the **pooled** connection string (must include `?sslmode=require`)
+4. Keep it for Step 3
+
+Push the schema once (from your PC):
+
+```bash
+cd RoLearn
+npm install
+cp .env.example .env
+# Paste DATABASE_URL into .env
+npx prisma db push
+```
+
+---
+
+## Step 2 — Supabase file storage (10 min, no credit card)
+
+Cloudflare R2 also works but **requires a credit card** on Cloudflare. If you don't have one, use **Supabase Storage** instead — **1 GB free, no card**.
+
+### Create Supabase project (storage only)
+
+1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**
+2. Pick a name and password (you won't use this DB — RoLearn uses Neon)
+3. Wait ~2 minutes for the project to spin up
+
+### Create a public bucket
+
+1. Left sidebar → **Storage**
+2. **New bucket** → name: `uploads`
+3. Turn **Public bucket** ON → Create
+
+### Get API keys
+
+1. **Project Settings** (gear icon) → **API**
+2. Copy:
+   - **Project URL** → `SUPABASE_URL`
+   - **service_role** key (under Project API keys) → `SUPABASE_SERVICE_ROLE_KEY`  
+     ⚠️ Keep this secret — server-only, never expose in client code
+
+---
+
+## Step 3 — Deploy on Vercel (10 min)
+
+### Import from GitHub
+
+1. Push your code to GitHub (or use the existing `popesmoke/RoLearn` repo)
+2. Go to [vercel.com/new](https://vercel.com/new)
+3. **Import** the RoLearn repository
+4. Leave build settings as default → **Deploy** (first deploy may fail — that's OK, we need env vars)
+
+### Environment variables
+
+Vercel → your project → **Settings** → **Environment Variables**
+
+Add these for **Production** (and Preview if you want):
+
+| Variable | Value | Example |
+|---|---|---|
+| `DATABASE_URL` | Neon pooled connection string | `postgresql://user:pass@...neon.tech/neondb?sslmode=require` |
+| `AUTH_SECRET` | Random 32+ character string | generate below |
+| `NEXTAUTH_SECRET` | Same as `AUTH_SECRET` or another random string | |
+| `NEXT_PUBLIC_APP_URL` | Your Vercel URL | `https://rolearn.vercel.app` |
+| `NEXTAUTH_URL` | Same as above | `https://rolearn.vercel.app` |
+| `OWNER_USERNAMES` | Your Roblox username | `YourRobloxName` |
+| `SUPABASE_URL` | From Supabase → Settings → API | `https://abcdefgh.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role key from Supabase | `eyJhbG...` |
+| `SUPABASE_BUCKET_NAME` | `uploads` | `uploads` |
+
+**Generate a secret** (PowerShell):
+
+```powershell
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
+### Find your Vercel URL
+
+After first deploy: Vercel → **Deployments** → open the site.  
+URL looks like `https://rolearn-xxxxx.vercel.app` or `https://rolearn.vercel.app`.
+
+Set `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` to that **exact** URL (with `https://`), then **Redeploy** (Deployments → ⋯ → Redeploy).
+
+### Push database schema to production
+
+On your PC, with production `DATABASE_URL` in `.env` (or one-off):
 
 ```bash
 npx prisma db push
 ```
 
-### 2. Media storage — Cloudflare R2 (free)
-
-Full step-by-step guide: **[docs/CLOUDFLARE.md](./CLOUDFLARE.md)**
-
-Quick version:
-
-1. [dash.cloudflare.com](https://dash.cloudflare.com) → **R2** → Create bucket `rolearn-uploads`
-2. Enable public access (r2.dev subdomain) or attach a custom domain
-3. Create API token with **Object Read & Write**
-4. Note your **Account ID** from the R2 overview page
-5. Add all `R2_*` env vars to Vercel (see CLOUDFLARE.md)
-
-### 3. Deploy app — Vercel (free)
-
-1. Push code to GitHub (see below)
-2. [vercel.com/dashboard](https://vercel.com/dashboard) → **Add New Project** → import `RoLearn`
-3. Add environment variables:
-
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | Neon pooled connection string |
-| `AUTH_SECRET` | Random 32+ char secret |
-| `NEXTAUTH_SECRET` | Same or another secret |
-| `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` (update after first deploy) |
-| `NEXTAUTH_URL` | Same as above |
-| `OWNER_USERNAMES` | Your Roblox username (gives you Owner panel access) |
-| `R2_ACCOUNT_ID` | Cloudflare account ID |
-| `R2_ACCESS_KEY_ID` | R2 API token key |
-| `R2_SECRET_ACCESS_KEY` | R2 API token secret |
-| `R2_BUCKET_NAME` | `rolearn-uploads` |
-| `R2_PUBLIC_URL` | `https://pub-xxxx.r2.dev` |
-
-4. Click **Deploy**
-5. After deploy, update `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` to your real Vercel URL → redeploy
-
-### 4. Custom domain — Cloudflare DNS (optional)
-
-1. Buy a domain or use one you own
-2. In Cloudflare → **Add site** → follow nameserver instructions
-3. Add a **CNAME** record pointing to Vercel (Project → Settings → Domains shows the exact value)
-4. In Vercel → Project → Settings → Domains → add your domain
-5. Update env vars to use your custom domain
-
-### 5. Push to GitHub
-
-```bash
-git add .
-git commit -m "Add owner role, staff badges, and deployment guide"
-git push origin main
-```
-
-Vercel auto-redeploys on every push to `main`.
+Or run it in Vercel's build — the repo `scripts/build.mjs` already runs `prisma generate`; schema push is done locally against the Neon URL.
 
 ---
 
-## Role system
+## Step 4 — Test
 
-| Role | Badge | Access |
-|---|---|---|
-| **Owner** | Gold | Full control — analytics, role management, delete content, announcements |
-| **Admin** | Purple | Announcements, featured listings, promote mods |
-| **Mod** | Blue | Resolve reports, view stats |
+1. Open `https://your-app.vercel.app`
+2. **Sign in with Roblox** (bio verification)
+3. Try **Studio → Portfolio** → upload an image
+4. Try **Create** → add a photo to a post
+5. Try **Studio → Courses** → written guide (works even without storage)
 
-Set your Roblox username in `OWNER_USERNAMES` before first login to auto-receive Owner access.
+---
+
+## No storage? You can still launch
+
+These work **without** any file storage:
+
+- Roblox login & profiles
+- Written courses (text only, no PDF)
+- Services, jobs, team posts (text only)
+- Messages, search, admin panel
+
+Add Supabase Storage when you want images, videos, or PDF courses.
+
+---
+
+## Storage options compared
+
+| Option | Credit card? | Free storage | Best for |
+|---|---|---|---|
+| **Supabase Storage** ✅ | **No** | 1 GB | You — no card, works on Vercel |
+| Cloudflare R2 | **Yes** (Cloudflare asks for card) | 10 GB | Later, if you get a card |
+| Uploadthing | No | 2 GB | Next.js apps (needs extra setup) |
+| Local `public/uploads/` | No | N/A | Dev only — **not** persistent on Vercel |
+
+RoLearn tries **R2 first** (if `R2_*` vars are set), then **Supabase**, then local files (dev only).
+
+---
+
+## Optional later: custom domain
+
+When you buy a domain:
+
+1. Vercel → Project → **Settings** → **Domains** → add your domain
+2. Follow Vercel's DNS instructions at your registrar
+3. Update `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` to `https://yourdomain.com`
+4. Redeploy
+
+You can use Cloudflare for DNS then — see [CLOUDFLARE.md](./CLOUDFLARE.md).
+
+---
+
+## Troubleshooting
+
+**Upload fails on Vercel**  
+→ Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_BUCKET_NAME`. Bucket must be **public**.
+
+**Roblox login fails after deploy**  
+→ `NEXTAUTH_URL` must match your site URL exactly (including `https://`).
+
+**"Verification failed"**  
+→ Bio must match the phrase exactly. Code expires in 15 minutes.
+
+**Database connection error**  
+→ Use Neon's **pooled** URL with `?sslmode=require`.
+
+**Site feels slow between pages**  
+→ Vercel Hobby has cold starts after ~5 min idle. First click may take 1–3s. Loading skeletons should appear instantly. For always-on hosting, see Railway in [CLOUDFLARE.md](./CLOUDFLARE.md#alternative-always-on-hosting).
+
+**Supabase project paused**  
+→ Free Supabase projects pause after 7 days idle. Open the dashboard and click **Restore** — storage still works.
+
+---
+
+## Quick checklist
+
+- [ ] Neon database created, `DATABASE_URL` in Vercel
+- [ ] `npx prisma db push` run against production DB
+- [ ] `AUTH_SECRET` + `NEXTAUTH_SECRET` set
+- [ ] `NEXT_PUBLIC_APP_URL` + `NEXTAUTH_URL` = your `*.vercel.app` URL
+- [ ] `OWNER_USERNAMES` = your Roblox username
+- [ ] Supabase bucket `uploads` (public) + 3 `SUPABASE_*` env vars
+- [ ] Redeploy after changing env vars
+- [ ] Sign in and test an image upload
 
 ---
 
@@ -118,66 +217,9 @@ git clone https://github.com/popesmoke/RoLearn.git
 cd RoLearn
 npm install
 cp .env.example .env
-# Edit .env with your Neon DATABASE_URL and OWNER_USERNAMES
+# Add DATABASE_URL and OWNER_USERNAMES
 npx prisma db push
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-### Login flow
-
-1. Click **Sign in with Roblox**
-2. Enter your Roblox username
-3. Copy the phrase (e.g. `RL jazz turtle`)
-4. Set your Roblox bio to **exactly** that phrase
-5. Click **Verify**
-
----
-
-## Alternative hosts
-
-If Vercel cold starts bother you:
-
-| Platform | Notes |
-|---|---|
-| **[Railway](https://railway.app)** | Always-on Docker, uses repo `Dockerfile` |
-| **[Render](https://render.com)** | Web Service (not Static Site), Docker or Node |
-
-Same Neon + Cloudflare R2 stack works with any of these.
-
----
-
-## Free tier limits
-
-| Service | Free limit | Enough for |
-|---|---|---|
-| Neon | 512 MB storage | Thousands of users early on |
-| Vercel Hobby | 100 GB bandwidth/mo | Small-to-medium traffic |
-| Cloudflare R2 | 10 GB storage | Lots of images/videos |
-| Cloudflare DNS | Unlimited | Any traffic |
-
----
-
-## Troubleshooting
-
-**"Verification failed"** — Bio must match the phrase exactly. Codes expire in 15 minutes.
-
-**Database errors** — Use Neon's **pooled** URL with `?sslmode=require`.
-
-**Build fails** — Ensure `AUTH_SECRET` is 32+ characters and all env vars are set in Vercel.
-
-**Owner panel not showing** — Set `OWNER_USERNAMES` to your exact Roblox username, redeploy, then sign in again.
-
-**Prisma schema changes** — Run `npx prisma db push` after pulling updates.
-
----
-
-## What you get for $0
-
-- Roblox-verified creator accounts with trust scores
-- Public profiles at `/u/username` with role badges
-- Marketplace (services + jobs) + team finder
-- Direct messages, search, creator dashboard
-- Owner/Admin/Mod moderation panel
-- PostgreSQL (Neon) + HTTPS (Vercel) + media (R2)
+Uploads save to `public/uploads/` locally — no Supabase needed on your PC.

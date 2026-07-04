@@ -26,11 +26,77 @@ function getR2Client() {
   });
 }
 
+function hasR2Config() {
+  return Boolean(
+    process.env.R2_ACCOUNT_ID &&
+      process.env.R2_ACCESS_KEY_ID &&
+      process.env.R2_SECRET_ACCESS_KEY &&
+      process.env.R2_BUCKET_NAME &&
+      process.env.R2_PUBLIC_URL,
+  );
+}
+
+function hasSupabaseStorageConfig() {
+  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
 function mediaTypeFromMime(mime: string): "image" | "video" | "pdf" | null {
   if (ALLOWED_IMAGE.includes(mime)) return "image";
   if (ALLOWED_VIDEO.includes(mime)) return "video";
   if (ALLOWED_PDF.includes(mime)) return "pdf";
   return null;
+}
+
+async function uploadToR2(
+  file: File,
+  buffer: Buffer,
+  key: string,
+  mediaType: "image" | "video" | "pdf",
+): Promise<UploadResult> {
+  const r2 = getR2Client();
+  const bucket = process.env.R2_BUCKET_NAME!;
+  const publicUrl = process.env.R2_PUBLIC_URL!;
+
+  await r2!.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: file.type,
+    }),
+  );
+  return { url: `${publicUrl.replace(/\/$/, "")}/${key}`, mediaType };
+}
+
+async function uploadToSupabase(
+  file: File,
+  buffer: Buffer,
+  key: string,
+  mediaType: "image" | "video" | "pdf",
+): Promise<UploadResult> {
+  const baseUrl = process.env.SUPABASE_URL!.replace(/\/$/, "");
+  const bucket = process.env.SUPABASE_BUCKET_NAME ?? "uploads";
+  const objectPath = `${bucket}/${key}`;
+
+  const res = await fetch(`${baseUrl}/storage/v1/object/${objectPath}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": file.type,
+      "x-upsert": "true",
+    },
+    body: new Uint8Array(buffer),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Storage upload failed (${res.status}). ${detail}`.trim());
+  }
+
+  return {
+    url: `${baseUrl}/storage/v1/object/public/${objectPath}`,
+    mediaType,
+  };
 }
 
 export async function uploadMedia(file: File): Promise<UploadResult> {
@@ -49,25 +115,17 @@ export async function uploadMedia(file: File): Promise<UploadResult> {
   const key = `uploads/${randomUUID()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const r2 = getR2Client();
-  const bucket = process.env.R2_BUCKET_NAME;
-  const publicUrl = process.env.R2_PUBLIC_URL;
+  if (hasR2Config()) {
+    return uploadToR2(file, buffer, key, mediaType);
+  }
 
-  if (r2 && bucket && publicUrl) {
-    await r2.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: buffer,
-        ContentType: file.type,
-      }),
-    );
-    return { url: `${publicUrl.replace(/\/$/, "")}/${key}`, mediaType };
+  if (hasSupabaseStorageConfig()) {
+    return uploadToSupabase(file, buffer, key, mediaType);
   }
 
   if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "Media uploads need Cloudflare R2. Add R2_* env vars — see docs/HOSTING.md.",
+      "File uploads need storage. Set up Supabase Storage (free, no credit card) — see docs/HOSTING.md.",
     );
   }
 
@@ -83,6 +141,14 @@ function keyFromPublicUrl(url: string): string | null {
   if (publicUrl && url.startsWith(publicUrl + "/")) {
     return url.slice(publicUrl.length + 1);
   }
+
+  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
+  const bucket = process.env.SUPABASE_BUCKET_NAME ?? "uploads";
+  const supabasePrefix = `${supabaseUrl}/storage/v1/object/public/${bucket}/`;
+  if (supabaseUrl && url.startsWith(supabasePrefix)) {
+    return url.slice(supabasePrefix.length);
+  }
+
   if (url.startsWith("/uploads/")) {
     return url.slice(1);
   }
@@ -95,6 +161,8 @@ export async function deleteMediaUrls(urls: string[]): Promise<void> {
   const r2 = getR2Client();
   const bucket = process.env.R2_BUCKET_NAME;
   const publicUrl = process.env.R2_PUBLIC_URL;
+  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
+  const supabaseBucket = process.env.SUPABASE_BUCKET_NAME ?? "uploads";
 
   for (const url of urls) {
     try {
@@ -102,6 +170,16 @@ export async function deleteMediaUrls(urls: string[]): Promise<void> {
         const key = keyFromPublicUrl(url);
         if (key) {
           await r2.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+        }
+      } else if (supabaseUrl && hasSupabaseStorageConfig()) {
+        const key = keyFromPublicUrl(url);
+        if (key) {
+          await fetch(`${supabaseUrl}/storage/v1/object/${supabaseBucket}/${key}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+          }).catch(() => undefined);
         }
       } else if (url.startsWith("/uploads/")) {
         const filePath = path.join(process.cwd(), "public", url);

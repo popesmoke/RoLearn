@@ -1,6 +1,12 @@
-# Cloudflare Setup for RoLearn
+# Cloudflare Setup for RoLearn (optional)
 
-Cloudflare handles two things for RoLearn: **DNS** (your custom domain) and **R2** (file uploads — portfolio images, course PDFs, post media).
+> **Don't have a credit card?** Skip this doc. Use **[Supabase Storage](./HOSTING.md#step-2--supabase-file-storage-10-min-no-credit-card)** instead — free, no card required. Cloudflare R2 asks for a payment method even on the free tier.
+
+Cloudflare is **optional**. You only need it if you want:
+- **R2** file storage (10 GB free, but credit card required)
+- **Custom domain DNS** (when you buy a domain later)
+
+For Vercel-only hosting with `your-app.vercel.app`, see **[HOSTING.md](./HOSTING.md)**.
 
 ---
 
@@ -146,6 +152,19 @@ Cloudflare provides free SSL. In **SSL/TLS** → set mode to **Full** (not Flexi
 | SSL | Free |
 
 This is more than enough to launch RoLearn.
+
+---
+
+## Alternative: always-on hosting
+
+Vercel Hobby can feel slow on the first click after idle (cold start). If that bothers you:
+
+| Platform | Notes |
+|---|---|
+| **[Railway](https://railway.app)** | Always-on Docker, uses repo `Dockerfile` |
+| **[Render](https://render.com)** | Web Service (not Static Site) |
+
+Same Neon + Supabase stack works on any host.
 
 ---
 
