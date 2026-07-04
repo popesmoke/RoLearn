@@ -5,10 +5,18 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ContactButton } from "@/components/contact-button";
+import { FollowButton } from "@/components/follow-button";
 import { FeedItem } from "@/components/feed/feed-item";
+import { ProfileActivityFeed } from "@/components/profile/profile-activity";
 import { AppIcon } from "@/components/icons";
 import { formatCategory, trustLevelStyles } from "@/lib/utils";
+import { responseRateLabel } from "@/lib/trust";
+import { fetchUserActivity } from "@/lib/activity";
+import { fetchUserPosts, serializeFeed } from "@/lib/feed";
+import { trackProfileView } from "@/lib/analytics";
 import { getDisplayName, getHandle } from "@/lib/user-display";
+import { getCurrentUser } from "@/lib/user";
+import { getFollowStats, isFollowing } from "@/app/actions/follows";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +26,7 @@ type PageProps = {
 
 export default async function ProfilePage({ params }: PageProps) {
   const { username } = await params;
+  const viewer = await getCurrentUser();
 
   const user = await prisma.user.findFirst({
     where: {
@@ -29,7 +38,6 @@ export default async function ProfilePage({ params }: PageProps) {
     include: {
       skills: { orderBy: { category: "asc" } },
       portfolioItems: { orderBy: { createdAt: "desc" }, take: 6 },
-      serviceOffers: { orderBy: { createdAt: "desc" }, take: 5 },
       reviewsReceived: {
         include: {
           reviewer: {
@@ -51,8 +59,26 @@ export default async function ProfilePage({ params }: PageProps) {
 
   if (!user) notFound();
 
+  await trackProfileView(user.id, viewer?.id);
+
   const handle = getHandle(user);
   const displayName = getDisplayName(user);
+  const isSelf = viewer?.id === user.id;
+
+  const [posts, activity, followStats, following] = await Promise.all([
+    fetchUserPosts(user.id, 10),
+    fetchUserActivity(user.id),
+    getFollowStats(user.id),
+    viewer && !isSelf ? isFollowing(viewer.id, user.id) : Promise.resolve(false),
+  ]);
+
+  const responseLabel = responseRateLabel(user.responseCount, user.responseTotalMin);
+  const avgRating =
+    user.reviewsReceived.length > 0
+      ? (
+          user.reviewsReceived.reduce((s, r) => s + r.rating, 0) / user.reviewsReceived.length
+        ).toFixed(1)
+      : null;
 
   return (
     <AppShell title="Profile" showRightRail={false}>
@@ -72,14 +98,20 @@ export default async function ProfilePage({ params }: PageProps) {
                 <div className="pb-1">
                   <div className="flex items-center gap-2">
                     <h1 className="text-2xl font-bold">{displayName}</h1>
-                    {user.isVerified ? (
-                      <AppIcon name="verified" size={22} />
-                    ) : null}
+                    {user.isVerified ? <AppIcon name="verified" size={22} /> : null}
                   </div>
                   <p className="text-muted">@{handle}</p>
+                  <p className="text-sm text-subtle">
+                    {followStats.followers} followers · {followStats.following} following
+                  </p>
                 </div>
               </div>
-              <ContactButton userId={user.id} />
+              <div className="flex flex-wrap gap-2">
+                {!isSelf ? <ContactButton userId={user.id} /> : null}
+                {!isSelf && viewer ? (
+                  <FollowButton targetUserId={user.id} initialFollowing={following} />
+                ) : null}
+              </div>
             </div>
 
             {user.aboutMe ? (
@@ -93,6 +125,8 @@ export default async function ProfilePage({ params }: PageProps) {
               {user.hireMeOpen ? <Badge variant="success">Open for hire</Badge> : null}
               <Badge>{user.trustScore} trust</Badge>
               <Badge>{user.reputationPoints} rep</Badge>
+              {avgRating ? <Badge variant="warning">{avgRating} ★ avg</Badge> : null}
+              {responseLabel ? <Badge variant="success">{responseLabel}</Badge> : null}
               {user.robloxUsername ? (
                 <a
                   href={`https://www.roblox.com/users/${user.robloxUserId}/profile`}
@@ -107,7 +141,7 @@ export default async function ProfilePage({ params }: PageProps) {
             {user.skills.length > 0 ? (
               <div className="mt-4 flex flex-wrap gap-2">
                 {user.skills.map((skill) => (
-                  <Link key={skill.id} href={`/search?skill=${skill.category}`}>
+                  <Link key={skill.id} href={`/skills/${skill.category.toLowerCase().replace(/_/g, "-")}`}>
                     <Badge variant="accent">{formatCategory(skill.category)}</Badge>
                   </Link>
                 ))}
@@ -127,7 +161,9 @@ export default async function ProfilePage({ params }: PageProps) {
                     <p className="mt-1 text-sm text-muted line-clamp-2">{item.description}</p>
                   ) : null}
                   {item.ownershipVerified ? (
-                    <Badge variant="success" className="mt-2">Verified</Badge>
+                    <Badge variant="success" className="mt-2">
+                      Verified ownership
+                    </Badge>
                   ) : null}
                 </div>
               ))}
@@ -135,26 +171,38 @@ export default async function ProfilePage({ params }: PageProps) {
           </section>
         ) : null}
 
-        {user.serviceOffers.length > 0 ? (
+        {posts.length > 0 ? (
           <section className="mt-6">
-            <h2 className="mb-3 text-lg font-bold">Services</h2>
+            <h2 className="mb-3 text-lg font-bold">Posts</h2>
             <div className="feed-grid !p-0">
-              {user.serviceOffers.map((service) => (
+              {serializeFeed(posts).map((item) => (
                 <FeedItem
-                  key={service.id}
-                  id={service.id}
-                  type="service"
-                  title={service.title}
-                  description={service.description}
-                  author={user}
-                  createdAt={service.createdAt}
-                  category={service.category}
-                  price={service.basePrice}
+                  key={`${item.type}-${item.id}`}
+                  id={item.id}
+                  type={item.type}
+                  title={item.title}
+                  description={item.description}
+                  author={item.author}
+                  createdAt={new Date(item.createdAt)}
+                  category={item.category}
+                  price={item.price}
+                  budgetMin={item.budgetMin}
+                  budgetMax={item.budgetMax}
+                  currency={item.currency}
+                  mediaUrls={item.mediaUrls}
+                  likeCount={item.likeCount}
+                  likedByMe={item.likedByMe}
+                  isOpen={item.isOpen}
                 />
               ))}
             </div>
           </section>
         ) : null}
+
+        <section className="mt-6">
+          <h2 className="mb-3 text-lg font-bold">Activity</h2>
+          <ProfileActivityFeed items={activity} />
+        </section>
 
         {user.reviewsReceived.length > 0 ? (
           <section className="mt-6">

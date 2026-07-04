@@ -50,6 +50,7 @@ export async function fetchIncomingApplications(userId: string): Promise<InboxAp
   return applications.map((app) => ({
     id: app.id,
     status: app.status,
+    message: app.message,
     createdAt: app.createdAt.toISOString(),
     listingType: app.listingType,
     listingId: app.listingId,

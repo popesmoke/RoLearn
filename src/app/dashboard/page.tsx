@@ -16,6 +16,8 @@ import { MyPostsPanel } from "@/components/feed/my-posts-panel";
 import { ApplicationsInbox } from "@/components/dashboard/applications-inbox";
 import { fetchUserPosts, serializeFeed } from "@/lib/feed";
 import { fetchIncomingApplications } from "@/lib/applications";
+import { CreatorAnalytics } from "@/components/analytics/creator-analytics";
+import { getCreatorAnalytics } from "@/lib/analytics";
 import { getHandle, profilePath } from "@/lib/user-display";
 import {
   addSkill,
@@ -36,6 +38,7 @@ type PageProps = {
 const tabs: { id: string; label: string; icon: IconName }[] = [
   { id: "profile", label: "Profile", icon: "user" },
   { id: "posts", label: "My posts", icon: "compose" },
+  { id: "analytics", label: "Analytics", icon: "studio" },
   { id: "portfolio", label: "Portfolio", icon: "briefcase" },
   { id: "courses", label: "Courses", icon: "star" },
   { id: "market", label: "Market", icon: "marketplace" },
@@ -64,12 +67,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   let userPosts: Awaited<ReturnType<typeof fetchUserPosts>> = [];
   let incomingApplications: Awaited<ReturnType<typeof fetchIncomingApplications>> = [];
+  let analytics: Awaited<ReturnType<typeof getCreatorAnalytics>> | null = null;
 
   if (tab === "posts") {
     [userPosts, incomingApplications] = await Promise.all([
       fetchUserPosts(user.id),
       fetchIncomingApplications(user.id),
     ]);
+  }
+
+  if (tab === "analytics") {
+    analytics = await getCreatorAnalytics(user.id);
   }
 
   return (
@@ -181,6 +189,22 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </p>
               <ApplicationsInbox applications={incomingApplications} />
             </div>
+          </div>
+        ) : null}
+
+        {tab === "analytics" && analytics ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted">
+              Track how your posts perform. Views and applications update in real time.
+            </p>
+            <CreatorAnalytics stats={analytics} />
+            <p className="text-sm text-muted">
+              Want more reach? See{" "}
+              <Link href="/monetization" className="text-accent hover:underline">
+                featured listing options
+              </Link>
+              .
+            </p>
           </div>
         ) : null}
 

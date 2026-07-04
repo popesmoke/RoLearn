@@ -9,19 +9,55 @@ export function formatCategory(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export function formatUsd(cents: number | null | undefined) {
-  if (cents == null) return "Negotiable";
+export function formatUsd(amount: number | null | undefined) {
+  if (amount == null) return "Negotiable";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
-  }).format(cents);
+  }).format(amount);
 }
 
-export function formatBudget(min: number | null, max: number | null) {
+export function formatRobux(amount: number | null | undefined) {
+  if (amount == null) return "Negotiable";
+  return `R$ ${amount.toLocaleString()}`;
+}
+
+export function formatPrice(
+  amount: number | null | undefined,
+  currency: "USD" | "ROBUX" | "BOTH" = "USD",
+) {
+  if (amount == null) return "Negotiable";
+  if (currency === "ROBUX") return formatRobux(amount);
+  if (currency === "BOTH") return `${formatUsd(amount)} or ${formatRobux(amount)}`;
+  return formatUsd(amount);
+}
+
+export function formatBudget(
+  min: number | null,
+  max: number | null,
+  currency: "USD" | "ROBUX" | "BOTH" = "USD",
+) {
   if (min == null && max == null) return "Budget TBD";
-  if (min != null && max != null) return `${formatUsd(min)} – ${formatUsd(max)}`;
-  return formatUsd(min ?? max);
+  if (min != null && max != null) {
+    return `${formatPrice(min, currency)} – ${formatPrice(max, currency)}`;
+  }
+  return formatPrice(min ?? max, currency);
+}
+
+export function currencyLabel(currency: "USD" | "ROBUX" | "BOTH") {
+  if (currency === "ROBUX") return "Robux";
+  if (currency === "BOTH") return "USD or Robux";
+  return "USD";
+}
+
+export function expiresInLabel(expiresAt: Date | null | undefined) {
+  if (!expiresAt) return null;
+  const days = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (days < 0) return "Expired";
+  if (days === 0) return "Expires today";
+  if (days === 1) return "Expires in 1 day";
+  return `Expires in ${days} days`;
 }
 
 export function timeAgo(date: Date) {

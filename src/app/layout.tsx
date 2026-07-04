@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppSessionProvider } from "@/components/session-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,7 +36,9 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://img.icons8.com" />
       </head>
       <body className="min-h-full flex flex-col">
-        <AppSessionProvider>{children}</AppSessionProvider>
+        <ThemeProvider>
+          <AppSessionProvider>{children}</AppSessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

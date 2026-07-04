@@ -5,6 +5,8 @@ import { ApplicationStatus, ListingType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { verifyApplicationOwner } from "@/lib/applications";
+import { postPath } from "@/lib/posts";
+import { recordResponseTime } from "@/lib/trust";
 
 async function notify(userId: string, type: string, title: string, body?: string, link?: string) {
   await prisma.notification.create({
@@ -34,7 +36,11 @@ async function getListingOwner(listingType: ListingType, listingId: string) {
   return row ? { ownerId: row.authorId, title: row.title } : null;
 }
 
-export async function applyToListing(listingType: ListingType, listingId: string) {
+export async function applyToListing(
+  listingType: ListingType,
+  listingId: string,
+  message?: string,
+) {
   const user = await requireUser();
 
   const existing = await prisma.application.findUnique({
@@ -56,25 +62,32 @@ export async function applyToListing(listingType: ListingType, listingId: string
       applicantId: user.id,
       listingType,
       listingId,
+      message: message?.trim() || null,
     },
   });
 
   const listing = await getListingOwner(listingType, listingId);
+  const postType = listingType === "SERVICE" ? "service" : listingType === "JOB" ? "job" : "team";
+
   if (listing && listing.ownerId !== user.id) {
     const label =
-      listingType === "JOB" ? "applied to your job" : listingType === "TEAM" ? "wants to join your team" : "wants to hire you";
+      listingType === "JOB"
+        ? "applied to your job"
+        : listingType === "TEAM"
+          ? "wants to join your team"
+          : "wants to hire you";
     await notify(
       listing.ownerId,
       "application",
       "New application",
-      `Someone ${label}: ${listing.title}`,
-      "/notifications",
+      `${user.displayName ?? "Someone"} ${label}: ${listing.title}`,
+      "/dashboard?tab=posts",
     );
   }
 
+  revalidatePath(postPath(postType, listingId));
   revalidatePath("/explore");
-  revalidatePath("/marketplace");
-  revalidatePath("/teamfinder");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
@@ -195,21 +208,100 @@ export async function respondToApplication(
     return { error: "Already responded." };
   }
 
+  let conversationId: string | null = null;
+  if (status === "ACCEPTED") {
+    const conv = await startConversation(app.applicantId);
+    conversationId = conv.conversationId ?? null;
+  }
+
   await prisma.application.update({
     where: { id: applicationId },
-    data: { status: status as ApplicationStatus },
+    data: {
+      status: status as ApplicationStatus,
+      conversationId,
+    },
   });
+
+  const minutes = (Date.now() - app.createdAt.getTime()) / 60000;
+  await recordResponseTime(user.id, Math.min(minutes, 1440));
 
   const label = status === "ACCEPTED" ? "accepted" : "declined";
   await notify(
     app.applicantId,
     "application_response",
     status === "ACCEPTED" ? "Application accepted" : "Application declined",
-    `Your application was ${label}.`,
-    "/notifications",
+    `Your application was ${label}.${conversationId ? " A chat thread was opened." : ""}`,
+    conversationId ? `/messages/${conversationId}` : "/notifications",
   );
 
   revalidatePath("/dashboard");
   revalidatePath("/notifications");
+  return { success: true, conversationId };
+}
+
+export async function completeApplication(applicationId: string) {
+  const user = await requireUser();
+  const app = await verifyApplicationOwner(applicationId, user.id);
+  if (!app) {
+    return { error: "Application not found." };
+  }
+
+  if (app.status !== ApplicationStatus.ACCEPTED) {
+    return { error: "Only accepted applications can be marked complete." };
+  }
+
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: {
+      status: ApplicationStatus.COMPLETED,
+      completedAt: new Date(),
+    },
+  });
+
+  await notify(
+    app.applicantId,
+    "project_complete",
+    "Project marked complete",
+    "The listing owner marked this project as finished. You can now leave a review.",
+    `/review/${applicationId}`,
+  );
+  await notify(
+    user.id,
+    "project_complete",
+    "Project marked complete",
+    "Leave a review for your collaborator.",
+    `/review/${applicationId}`,
+  );
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/review/${applicationId}`);
+  return { success: true };
+}
+
+export async function markOnboardingDone() {
+  const user = await requireUser();
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { onboardingDone: true },
+  });
+  return { success: true };
+}
+
+export async function submitReport(
+  targetType: string,
+  targetId: string,
+  reason: string,
+  details?: string,
+) {
+  const user = await requireUser();
+  await prisma.report.create({
+    data: {
+      reporterId: user.id,
+      targetType,
+      targetId,
+      reason,
+      details: details?.trim() || null,
+    },
+  });
   return { success: true };
 }

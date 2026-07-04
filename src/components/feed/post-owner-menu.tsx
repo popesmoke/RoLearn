@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { closePost, deletePost, reopenPost } from "@/app/actions/posts";
@@ -102,6 +103,14 @@ export function PostOwnerMenu({
             onClick={() => setOpen(false)}
           />
           <div className="absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-xl border border-border bg-surface-elevated py-1 shadow-lg">
+            <Link
+              href={`/compose/edit/${postType}/${postId}`}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-muted hover:bg-surface-hover hover:text-foreground"
+              onClick={() => setOpen(false)}
+            >
+              <Icon8 name="compose" size={16} />
+              Edit post
+            </Link>
             {canClose && isOpen ? (
               <button
                 type="button"

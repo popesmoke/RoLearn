@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createPost } from "@/app/actions/posts";
+import { createPost, updatePost } from "@/app/actions/posts";
 import { Icon8 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,11 +18,48 @@ const postTypes = [
   { id: "team", label: "Team", desc: "Who you need", icon: "teams" as const },
 ];
 
-export function ComposeForm() {
+const currencyOptions = [
+  { value: "USD", label: "USD only" },
+  { value: "ROBUX", label: "Robux only" },
+  { value: "BOTH", label: "USD or Robux" },
+];
+
+const expiryOptions = [
+  { value: "", label: "No expiry" },
+  { value: "7", label: "7 days" },
+  { value: "14", label: "14 days" },
+  { value: "30", label: "30 days" },
+  { value: "60", label: "60 days" },
+];
+
+type ComposeFormProps = {
+  mode?: "create" | "edit";
+  postType?: string;
+  postId?: string;
+  initial?: {
+    title?: string;
+    description?: string;
+    category?: string;
+    price?: number | null;
+    budgetMin?: number | null;
+    budgetMax?: number | null;
+    currency?: string;
+    mediaUrls?: string[];
+    expiryDays?: number | "";
+  };
+};
+
+export function ComposeForm({
+  mode = "create",
+  postType: initialType = "service",
+  postId,
+  initial,
+}: ComposeFormProps) {
   const router = useRouter();
-  const [type, setType] = useState("service");
-  const [step, setStep] = useState(1);
-  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const isEdit = mode === "edit";
+  const [type, setType] = useState(initialType);
+  const [step, setStep] = useState(isEdit ? 3 : 1);
+  const [mediaUrls, setMediaUrls] = useState<string[]>(initial?.mediaUrls ?? []);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -47,12 +84,15 @@ export function ComposeForm() {
     formData.set("mediaUrls", JSON.stringify(mediaUrls));
 
     try {
-      const result = await createPost(formData);
+      const result =
+        isEdit && postId
+          ? await updatePost(type as "service" | "job" | "team", postId, formData)
+          : await createPost(formData);
       if (result.error) {
         setError(result.error);
         return;
       }
-      router.push("/explore");
+      router.push(isEdit ? `/p/${type}/${postId}` : "/explore");
       router.refresh();
     } catch {
       setError("Could not publish. Try again.");
@@ -63,16 +103,17 @@ export function ComposeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex gap-2">
-        {[1, 2, 3].map((n) => (
-          <div
-            key={n}
-            className={cn("h-1 flex-1 rounded-full transition", step >= n ? "bg-accent" : "bg-border")}
-          />
-        ))}
-      </div>
+      {!isEdit ? (
+        <div className="flex gap-2">
+          {[1, 2, 3].map((n) => (
+            <div
+              key={n}
+              className={cn("h-1 flex-1 rounded-full transition", step >= n ? "bg-accent" : "bg-border")}
+            />
+          ))}
+        </div>
+      ) : null}
 
-      {/* Keep all steps in the DOM so FormData includes title/description on submit */}
       <section className={cn("space-y-4", step !== 1 && "hidden")}>
         <div>
           <h2 className="text-lg font-bold">1. Pick a type</h2>
@@ -111,19 +152,28 @@ export function ComposeForm() {
           <h2 className="text-lg font-bold">2. Write your post</h2>
           <p className="text-sm text-muted">Title and description are all you need.</p>
         </div>
-        <Input name="title" label="Title" required placeholder="e.g. Advanced combat system" />
+        <Input
+          name="title"
+          label="Title"
+          required
+          defaultValue={initial?.title}
+          placeholder="e.g. Advanced combat system"
+        />
         <Textarea
           name="description"
           label="Description"
           required
           rows={5}
+          defaultValue={initial?.description}
           placeholder="What are you offering, hiring for, or building?"
         />
         {error && step === 2 ? <p className="text-sm text-red-400">{error}</p> : null}
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={() => setStep(1)}>
-            Back
-          </Button>
+          {!isEdit ? (
+            <Button type="button" variant="outline" onClick={() => setStep(1)}>
+              Back
+            </Button>
+          ) : null}
           <Button
             type="button"
             onClick={(e) => goToStep3(e.currentTarget.form as HTMLFormElement)}
@@ -136,39 +186,88 @@ export function ComposeForm() {
 
       <section className={cn("space-y-4", step !== 3 && "hidden")}>
         <div>
-          <h2 className="text-lg font-bold">3. Details & media</h2>
-          <p className="text-sm text-muted">Optional extras — skip anything you don&apos;t need.</p>
+          <h2 className="text-lg font-bold">{isEdit ? "Edit details" : "3. Details & media"}</h2>
+          <p className="text-sm text-muted">Payment, expiry, and attachments.</p>
         </div>
 
         {type === "service" ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Select name="category" label="Skill" options={skillCategories} defaultValue="SCRIPTER" />
-            <Input name="price" label="Starting price (USD)" type="number" min="0" placeholder="Optional" />
+            <Select
+              name="category"
+              label="Skill"
+              options={skillCategories}
+              defaultValue={initial?.category ?? "SCRIPTER"}
+            />
+            <Input
+              name="price"
+              label="Starting price"
+              type="number"
+              min="0"
+              defaultValue={initial?.price ?? ""}
+              placeholder="Optional"
+            />
           </div>
         ) : null}
 
         {type === "job" ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input name="budgetMin" label="Min budget (USD)" type="number" min="0" placeholder="Optional" />
-            <Input name="budgetMax" label="Max budget (USD)" type="number" min="0" placeholder="Optional" />
+            <Input
+              name="budgetMin"
+              label="Min budget"
+              type="number"
+              min="0"
+              defaultValue={initial?.budgetMin ?? ""}
+              placeholder="Optional"
+            />
+            <Input
+              name="budgetMax"
+              label="Max budget"
+              type="number"
+              min="0"
+              defaultValue={initial?.budgetMax ?? ""}
+              placeholder="Optional"
+            />
           </div>
         ) : null}
 
         {type === "team" ? (
-          <Select name="category" label="Role needed" options={skillCategories} defaultValue="SCRIPTER" />
+          <Select
+            name="category"
+            label="Role needed"
+            options={skillCategories}
+            defaultValue={initial?.category ?? "SCRIPTER"}
+          />
         ) : null}
+
+        {(type === "service" || type === "job") ? (
+          <Select
+            name="currency"
+            label="Accept payment in"
+            options={currencyOptions}
+            defaultValue={initial?.currency ?? "USD"}
+          />
+        ) : null}
+
+        <Select
+          name="expiryDays"
+          label="Auto-close after"
+          options={expiryOptions}
+          defaultValue={String(initial?.expiryDays ?? "")}
+        />
 
         <MediaUploader urls={mediaUrls} onChange={setMediaUrls} />
 
         {error && step === 3 ? <p className="text-sm text-red-400">{error}</p> : null}
 
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={() => setStep(2)}>
-            Back
-          </Button>
+          {!isEdit ? (
+            <Button type="button" variant="outline" onClick={() => setStep(2)}>
+              Back
+            </Button>
+          ) : null}
           <Button type="submit" size="lg" className="flex-1 gap-2" disabled={loading}>
             <Icon8 name="compose" size={20} />
-            {loading ? "Publishing…" : "Publish to feed"}
+            {loading ? "Saving…" : isEdit ? "Save changes" : "Publish to feed"}
           </Button>
         </div>
       </section>

@@ -1,18 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ListingType, SkillCategory } from "@prisma/client";
+import { ListingType, PaymentCurrency, SkillCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { skillCategories } from "@/lib/constants";
 import { profilePath } from "@/lib/user-display";
 import { deleteMediaUrls } from "@/lib/storage";
+import { buildExpiryDate, postPath } from "@/lib/posts";
+import { adjustTrustScore } from "@/lib/trust";
 
 function safeCategory(value: string): SkillCategory {
   if (skillCategories.includes(value as (typeof skillCategories)[number])) {
     return value as SkillCategory;
   }
   return SkillCategory.SCRIPTER;
+}
+
+function safeCurrency(value: string): PaymentCurrency {
+  if (value === "ROBUX" || value === "BOTH") return value;
+  return PaymentCurrency.USD;
 }
 
 function toInt(value: string): number | null {
@@ -32,22 +39,32 @@ function parseMediaUrls(raw: string): string[] {
   }
 }
 
-function revalidateAll(user: { username?: string | null }) {
+function revalidateAll(user: { username?: string | null; robloxUsername?: string | null }) {
   revalidatePath("/explore");
   revalidatePath("/marketplace");
   revalidatePath("/teamfinder");
   revalidatePath("/search");
   revalidatePath("/dashboard");
-  if (user.username) revalidatePath(profilePath(user));
+  revalidatePath("/bookmarks");
+  revalidatePath("/activity");
+  if (user.username || user.robloxUsername) revalidatePath(profilePath(user));
+}
+
+function parsePostFields(formData: FormData) {
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const category = safeCategory(String(formData.get("category") ?? "SCRIPTER"));
+  const currency = safeCurrency(String(formData.get("currency") ?? "USD"));
+  const mediaUrls = parseMediaUrls(String(formData.get("mediaUrls") ?? "[]"));
+  const expiryDays = toInt(String(formData.get("expiryDays") ?? ""));
+  const expiresAt = buildExpiryDate(expiryDays);
+  return { title, description, category, currency, mediaUrls, expiresAt };
 }
 
 export async function createPost(formData: FormData) {
   const user = await requireUser();
   const type = String(formData.get("type") ?? "service");
-  const title = String(formData.get("title") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const category = safeCategory(String(formData.get("category") ?? "SCRIPTER"));
-  const mediaUrls = parseMediaUrls(String(formData.get("mediaUrls") ?? "[]"));
+  const { title, description, category, currency, mediaUrls, expiresAt } = parsePostFields(formData);
 
   if (!title || !description) {
     return { error: "Title and description are required." };
@@ -61,7 +78,9 @@ export async function createPost(formData: FormData) {
         description,
         category,
         basePrice: toInt(String(formData.get("price") ?? "")),
+        currency,
         mediaUrls,
+        expiresAt,
       },
     });
   } else if (type === "job") {
@@ -72,7 +91,9 @@ export async function createPost(formData: FormData) {
         description,
         budgetMin: toInt(String(formData.get("budgetMin") ?? "")),
         budgetMax: toInt(String(formData.get("budgetMax") ?? "")),
+        currency,
         mediaUrls,
+        expiresAt,
       },
     });
   } else if (type === "team") {
@@ -83,13 +104,78 @@ export async function createPost(formData: FormData) {
         description,
         neededRole: category,
         mediaUrls,
+        expiresAt,
       },
     });
   } else {
     return { error: "Invalid post type." };
   }
 
+  await adjustTrustScore(user.id, 2);
   revalidateAll(user);
+  return { success: true };
+}
+
+export async function updatePost(
+  postType: "service" | "job" | "team",
+  postId: string,
+  formData: FormData,
+) {
+  const user = await requireUser();
+  if (!(await verifyOwnership(postType, postId, user.id))) {
+    return { error: "Post not found or you don't have permission." };
+  }
+
+  const { title, description, category, currency, mediaUrls, expiresAt } = parsePostFields(formData);
+  if (!title || !description) {
+    return { error: "Title and description are required." };
+  }
+
+  const oldMedia = await getPostMediaUrls(postType, postId);
+  const removed = oldMedia.filter((u) => !mediaUrls.includes(u));
+
+  if (postType === "service") {
+    await prisma.serviceOffer.update({
+      where: { id: postId },
+      data: {
+        title,
+        description,
+        category,
+        basePrice: toInt(String(formData.get("price") ?? "")),
+        currency,
+        mediaUrls,
+        expiresAt,
+      },
+    });
+  } else if (postType === "job") {
+    await prisma.jobPost.update({
+      where: { id: postId },
+      data: {
+        title,
+        description,
+        budgetMin: toInt(String(formData.get("budgetMin") ?? "")),
+        budgetMax: toInt(String(formData.get("budgetMax") ?? "")),
+        currency,
+        mediaUrls,
+        expiresAt,
+      },
+    });
+  } else {
+    await prisma.teamPost.update({
+      where: { id: postId },
+      data: {
+        title,
+        description,
+        neededRole: category,
+        mediaUrls,
+        expiresAt,
+      },
+    });
+  }
+
+  if (removed.length > 0) await deleteMediaUrls(removed);
+  revalidateAll(user);
+  revalidatePath(postPath(postType, postId));
   return { success: true };
 }
 
@@ -106,6 +192,8 @@ export async function toggleLike(listingType: ListingType, listingId: string) {
     },
   });
 
+  const postType = listingType === "SERVICE" ? "service" : listingType === "JOB" ? "job" : "team";
+
   if (existing) {
     await prisma.postLike.delete({ where: { id: existing.id } });
   } else {
@@ -121,7 +209,7 @@ export async function toggleLike(listingType: ListingType, listingId: string) {
           type: "like",
           title: "New like",
           body: "Someone liked your post",
-          link: "/explore",
+          link: postPath(postType, listingId),
         },
       });
     }
@@ -178,6 +266,7 @@ async function verifyOwnership(
 async function cleanupListing(listingType: ListingType, listingId: string) {
   await prisma.postLike.deleteMany({ where: { listingType, listingId } });
   await prisma.application.deleteMany({ where: { listingType, listingId } });
+  await prisma.bookmark.deleteMany({ where: { listingType, listingId } });
 }
 
 async function getPostMediaUrls(postType: "service" | "job" | "team", postId: string) {

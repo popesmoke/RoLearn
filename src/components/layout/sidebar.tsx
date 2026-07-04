@@ -7,14 +7,18 @@ import { cn } from "@/lib/utils";
 import { Icon8, type IconName } from "@/components/icons";
 import { ButtonLink } from "@/components/ui/button";
 import { AuthButtons } from "@/components/auth-buttons";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getHandle, profilePath } from "@/lib/user-display";
 
 const navItems: { href: string; label: string; icon: IconName }[] = [
   { href: "/explore", label: "Live feed", icon: "live" },
   { href: "/compose", label: "Create", icon: "compose" },
+  { href: "/activity", label: "Activity", icon: "refresh" },
+  { href: "/bookmarks", label: "Saved", icon: "star" },
   { href: "/search", label: "Search", icon: "search" },
   { href: "/marketplace", label: "Market", icon: "marketplace" },
   { href: "/teamfinder", label: "Teams", icon: "teams" },
+  { href: "/announcements", label: "News", icon: "bell" },
   { href: "/messages", label: "Messages", icon: "messages" },
   { href: "/notifications", label: "Alerts", icon: "bell" },
   { href: "/dashboard", label: "Studio", icon: "studio" },
@@ -22,15 +26,18 @@ const navItems: { href: string; label: string; icon: IconName }[] = [
 
 type SidebarProps = {
   user?: {
+    id?: string;
     username?: string | null;
     robloxUsername?: string | null;
     displayName?: string | null;
     email?: string | null;
+    role?: string;
   } | null;
   unreadCount?: number;
+  isAdmin?: boolean;
 };
 
-export function Sidebar({ user, unreadCount = 0 }: SidebarProps) {
+export function Sidebar({ user, unreadCount = 0, isAdmin = false }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -82,9 +89,25 @@ export function Sidebar({ user, unreadCount = 0 }: SidebarProps) {
             <span className="truncate">@{getHandle(user)}</span>
           </Link>
         ) : null}
+
+        {isAdmin ? (
+          <Link
+            href="/admin"
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] transition",
+              pathname.startsWith("/admin")
+                ? "nav-active font-semibold"
+                : "font-medium text-muted hover:bg-surface-hover hover:text-foreground",
+            )}
+          >
+            <Icon8 name="studio" size={22} />
+            <span>Admin</span>
+          </Link>
+        ) : null}
       </nav>
 
       <div className="mt-auto space-y-3 px-1 pb-2">
+        <ThemeToggle />
         <ButtonLink href="/compose" className="w-full gap-2" size="sm">
           <Icon8 name="plus" size={16} />
           New post

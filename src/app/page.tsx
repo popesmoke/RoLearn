@@ -156,6 +156,9 @@ export default function Home() {
             >
               Icons by Icons8
             </a>
+            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+            <Link href="/terms" className="hover:text-foreground">Terms</Link>
+            <Link href="/monetization" className="hover:text-foreground">Monetization</Link>
             <a href="https://github.com/popesmoke/RoLearn" className="hover:text-foreground">
               GitHub
             </a>

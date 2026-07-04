@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { respondToApplication } from "@/app/actions/interactions";
+import { completeApplication, respondToApplication } from "@/app/actions/interactions";
 import { ContactButton } from "@/components/contact-button";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,8 @@ import { getDisplayName, getHandle, profilePath } from "@/lib/user-display";
 
 export type InboxApplication = {
   id: string;
-  status: "PENDING" | "ACCEPTED" | "REJECTED";
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED";
+  message?: string | null;
   createdAt: string;
   listingType: "SERVICE" | "JOB" | "TEAM";
   listingId: string;
@@ -53,6 +54,17 @@ export function ApplicationsInbox({ applications: initial }: ApplicationsInboxPr
     if (result.error) return;
     setApplications((prev) =>
       prev.map((a) => (a.id === id ? { ...a, status } : a)),
+    );
+    router.refresh();
+  }
+
+  async function handleComplete(id: string) {
+    setLoadingId(id);
+    const result = await completeApplication(id);
+    setLoadingId(null);
+    if (result.error) return;
+    setApplications((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, status: "COMPLETED" as const } : a)),
     );
     router.refresh();
   }
@@ -114,6 +126,11 @@ export function ApplicationsInbox({ applications: initial }: ApplicationsInboxPr
                 <p className="mt-1 text-sm text-muted">
                   Applied to <strong className="text-foreground">{app.listingTitle}</strong>
                 </p>
+                {app.message ? (
+                  <p className="mt-2 rounded-lg bg-surface px-3 py-2 text-sm text-muted">
+                    &ldquo;{app.message}&rdquo;
+                  </p>
+                ) : null}
                 <p className="mt-1 text-xs text-subtle">{timeAgo(new Date(app.createdAt))}</p>
 
                 {app.status === "PENDING" ? (
@@ -136,6 +153,31 @@ export function ApplicationsInbox({ applications: initial }: ApplicationsInboxPr
                       Decline
                     </Button>
                     <ContactButton userId={app.applicant.id} />
+                  </div>
+                ) : null}
+
+                {app.status === "ACCEPTED" ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleComplete(app.id)}
+                      disabled={loadingId === app.id}
+                    >
+                      Mark project complete
+                    </Button>
+                    <ContactButton userId={app.applicant.id} />
+                  </div>
+                ) : null}
+
+                {app.status === "COMPLETED" ? (
+                  <div className="mt-3">
+                    <Link
+                      href={`/review/${app.id}`}
+                      className="text-sm text-accent hover:underline"
+                    >
+                      Leave a review
+                    </Link>
                   </div>
                 ) : null}
               </div>
